@@ -1,182 +1,184 @@
-// Theme colors - hackerman defaults
-$background: #0B0C16;
-$foreground: #ddf7ff;
+// Bartender - Clean utilitarian bar
+// No chrome, no bubbles, just information
+
+$background: #1a1b26;
+$foreground: #c0caf5;
+$dim: rgba($foreground, 0.35);
+$accent: #7aa2f7;
+$green: #9ece6a;
+$yellow: #e0af68;
+$red: #f7768e;
 
 window.bartender {
   background: transparent;
+  background-color: transparent;
   font-family: "Berkeley Mono", "JetBrainsMono Nerd Font", monospace;
   font-size: 13px;
-  font-weight: bold;
 
-  > box {
-    background: rgba($background, 0.85);
-    color: $foreground;
-    border-radius: 0;
-    padding: 4px 12px;
+  * {
+    background: transparent;
+    background-color: transparent;
   }
 
-  button {
-    background: transparent;
-    border: none;
-    border-radius: 6px;
-    padding: 4px 8px;
-    margin: 2px;
-    min-height: 0;
-    min-width: 0;
+  > box,
+  centerbox {
+    background: rgba(26, 27, 38, 0.8);
+    background-color: rgba(26, 27, 38, 0.8);
     color: $foreground;
-    transition: background 150ms ease;
+    padding: 0 8px;
+  }
+
+  centerbox > box {
+    background: transparent;
+    background-color: transparent;
+  }
+
+  // Strip ALL button chrome
+  button,
+  menubutton > button {
+    all: unset;
+    padding: 8px 6px;
+    color: $foreground;
+    transition: color 100ms ease;
 
     &:hover {
-      background: rgba($foreground, 0.1);
-    }
-
-    &:active {
-      background: rgba($foreground, 0.2);
+      color: $accent;
     }
   }
 
   menubutton {
-    background: transparent;
-    border: none;
-    padding: 4px 8px;
-    margin: 2px;
-
-    > button {
-      padding: 4px 8px;
-      margin: 0;
-    }
+    all: unset;
   }
 
+  // Popover keeps some structure
   popover {
     background: $background;
     color: $foreground;
-    border: 1px solid rgba($foreground, 0.2);
-    border-radius: 8px;
+    border: 1px solid rgba($foreground, 0.15);
+    border-radius: 6px;
     padding: 8px;
+  }
 
-    button {
-      padding: 6px 12px;
-      margin: 2px 0;
-      border-radius: 4px;
+  // Workspaces - always 1-5, visual states like waybar
+  .workspaces {
+    .ws {
+      padding: 8px 6px;
+      font-size: 13px;
+      font-weight: normal;
+      color: rgba($foreground, 0.2); // default empty
+
+      &.occupied {
+        color: rgba($foreground, 0.7);
+      }
+
+      &.focused {
+        color: $foreground;
+        font-weight: bold;
+      }
 
       &:hover {
-        background: rgba($foreground, 0.1);
+        color: $accent;
       }
     }
   }
 
-  // Workspaces
-  .workspaces {
+  // Clock - clean
+  .clock {
     button {
-      min-width: 24px;
-      padding: 4px 8px;
-
-      &.focused {
-        background: rgba($foreground, 0.2);
-      }
+      padding: 8px 12px;
+      color: $foreground;
     }
   }
 
   // Feed ticker
   .feed-ticker {
-    padding: 4px 12px;
+    padding: 8px 16px;
+    color: $foreground;
 
     &.loading {
-      opacity: 0.6;
+      color: $dim;
     }
 
     &.error {
-      color: #ff6b6b;
+      color: $red;
     }
 
     label {
       font-weight: normal;
     }
-  }
 
-  // Clock
-  .clock {
-    font-weight: bold;
+    &:hover label {
+      color: $accent;
+    }
   }
 
   // System tray
   .tray {
-    menubutton {
-      padding: 2px 4px;
+    menubutton > button {
+      padding: 8px 4px;
     }
 
     image {
-      min-width: 18px;
-      min-height: 18px;
+      min-width: 16px;
+      min-height: 16px;
+      -gtk-icon-style: symbolic;
     }
   }
 
   // Volume
   .volume {
+    > button {
+      padding: 8px 6px;
+    }
+
     slider {
-      min-height: 8px;
+      min-height: 6px;
       margin: 8px;
 
       trough {
-        background: rgba($foreground, 0.2);
-        border-radius: 4px;
-        min-height: 8px;
+        background: rgba($foreground, 0.15);
+        border-radius: 3px;
+        min-height: 6px;
       }
 
       highlight {
-        background: $foreground;
-        border-radius: 4px;
+        background: $accent;
+        border-radius: 3px;
       }
 
       slider {
         background: $foreground;
         border-radius: 50%;
-        min-width: 16px;
-        min-height: 16px;
-        margin: -4px;
+        min-width: 12px;
+        min-height: 12px;
+        margin: -3px;
       }
     }
   }
 
-  // VPN
+  // Status colors for VPN, ProxyForge, Audio
   .vpn {
-    &.connected {
-      color: #50f872;
-    }
-
-    &.connecting {
-      color: #f7d750;
-    }
-
-    &.disconnected {
-      color: rgba($foreground, 0.4);
-    }
+    &.connected { color: $green; }
+    &.connecting { color: $yellow; }
+    &.disconnected { color: $dim; }
   }
 
-  // ProxyForge
   .proxyforge {
-    &.proxyforge-active {
-      color: #50f872;
-    }
-
+    &.proxyforge-active { color: $green; }
     &.proxyforge-starting,
-    &.proxyforge-stopping {
-      color: #f7d750;
-    }
-
-    &.proxyforge-off {
-      color: rgba($foreground, 0.4);
-    }
+    &.proxyforge-stopping { color: $yellow; }
+    &.proxyforge-off { color: $dim; }
   }
 
-  // Audio
   .audio {
-    &.both {
-      color: #50f872;
-    }
+    &.speakers { color: $foreground; }
+    &.headphones { color: $foreground; }
+    &.both { color: $green; }
+    &.muted { color: $red; }
+  }
 
-    &.muted {
-      color: #ff6b6b;
-    }
+  // All images/icons inherit color
+  image {
+    -gtk-icon-style: symbolic;
   }
 }

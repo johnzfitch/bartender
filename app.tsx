@@ -4,7 +4,14 @@ import style from "./styles/style.scss"
 import Bar from "./Bar"
 
 app.start({
+  instanceName: "bartender",
   css: style,
+  requestHandler(request, respond) {
+    if (request === "quit") {
+      app.quit()
+      respond("bye")
+    }
+  },
   main() {
     const monitors = createBinding(app, "monitors")
 

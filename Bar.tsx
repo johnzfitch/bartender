@@ -6,7 +6,7 @@ import Gdk from "gi://Gdk?version=4.0"
 import AstalHyprland from "gi://AstalHyprland"
 import AstalWp from "gi://AstalWp"
 import AstalTray from "gi://AstalTray"
-import { For, createBinding, onCleanup } from "ags"
+import { For, createBinding, createState, onCleanup } from "ags"
 import { createPoll } from "ags/time"
 
 // Custom widgets
@@ -15,23 +15,44 @@ import Vpn from "./widgets/Vpn"
 import ProxyForge from "./widgets/ProxyForge"
 import Audio from "./widgets/Audio"
 
+function WorkspaceButton({ id, hyprland }: { id: number; hyprland: AstalHyprland.Hyprland }) {
+  const [classes, setClasses] = createState<string[]>(getClasses())
+
+  function getClasses(): string[] {
+    const isFocused = hyprland.focusedWorkspace?.id === id
+    const isOccupied = hyprland.workspaces.some((ws) => ws.id === id)
+    const cls = ["ws"]
+    if (isFocused) cls.push("focused")
+    else if (isOccupied) cls.push("occupied")
+    else cls.push("empty")
+    return cls
+  }
+
+  // Subscribe to both workspace and focus changes
+  const update = () => setClasses(getClasses())
+  hyprland.connect("notify::focused-workspace", update)
+  hyprland.connect("notify::workspaces", update)
+
+  return (
+    <button
+      cssClasses={classes}
+      onClicked={() => hyprland.dispatch("workspace", id.toString())}
+    >
+      <label label={id.toString()} />
+    </button>
+  )
+}
+
 function Workspaces() {
   const hyprland = AstalHyprland.get_default()
-  const workspaces = createBinding(hyprland, "workspaces")
-  const focused = createBinding(hyprland, "focusedWorkspace")
 
   return (
     <box cssClasses={["workspaces"]}>
-      <For each={workspaces}>
-        {(ws) => (
-          <button
-            cssClasses={focused((f) => f?.id === ws.id ? ["focused"] : [])}
-            onClicked={() => ws.focus()}
-          >
-            <label label={ws.id.toString()} />
-          </button>
-        )}
-      </For>
+      <WorkspaceButton id={1} hyprland={hyprland} />
+      <WorkspaceButton id={2} hyprland={hyprland} />
+      <WorkspaceButton id={3} hyprland={hyprland} />
+      <WorkspaceButton id={4} hyprland={hyprland} />
+      <WorkspaceButton id={5} hyprland={hyprland} />
     </box>
   )
 }
@@ -51,11 +72,21 @@ function Tray() {
   return (
     <box cssClasses={["tray"]}>
       <For each={items}>
-        {(item) => (
-          <menubutton $={(self) => init(self, item)}>
-            <image gicon={createBinding(item, "gicon")} />
-          </menubutton>
-        )}
+        {(item) => {
+          // Skip items with no usable icon
+          const hasIcon = item.gicon !== null || (item.iconName && item.iconName.length > 0)
+          if (!hasIcon) return <box />
+
+          return (
+            <menubutton $={(self) => init(self, item)} tooltipText={item.title || item.id}>
+              {item.gicon ? (
+                <image gicon={createBinding(item, "gicon")} />
+              ) : (
+                <image iconName={createBinding(item, "iconName")} />
+              )}
+            </menubutton>
+          )
+        }}
       </For>
     </box>
   )
@@ -108,8 +139,13 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
 
   return (
     <window
-      $={(self) => (win = self)}
+      $={(self) => {
+        win = self
+        // Force transparent background
+        self.set_decorated(false)
+      }}
       visible
+      cssClasses={["bartender"]}
       namespace="bartender"
       name={`bar-${gdkmonitor.connector}`}
       gdkmonitor={gdkmonitor}
@@ -120,10 +156,9 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
       <centerbox>
         <box $type="start" spacing={8}>
           <Workspaces />
-          <Feed />
         </box>
         <box $type="center">
-          <Clock format="%a %b %d  %H:%M" />
+          <Feed />
         </box>
         <box $type="end" spacing={8}>
           <Tray />
@@ -131,6 +166,7 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
           <Volume />
           <ProxyForge />
           <Vpn />
+          <Clock format="%a %b %d %l:%M %p" />
         </box>
       </centerbox>
     </window>

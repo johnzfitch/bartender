@@ -70,6 +70,8 @@
           (ags.packages.${system}.default.override {
             inherit extraPackages;
           })
+          pkgs.alsa-utils
+          pkgs.curl
         ];
       };
     };

@@ -11,8 +11,8 @@ export default function Audio() {
 
   async function refresh(): Promise<void> {
     try {
-      const lineOut = await execAsync(["amixer", "-c", "2", "sget", "Line Out"])
-      const headphone = await execAsync(["amixer", "-c", "2", "sget", "Headphone"])
+      const lineOut = await execAsync(["amixer", "-c", "3", "sget", "Line Out"])
+      const headphone = await execAsync(["amixer", "-c", "3", "sget", "Headphone"])
 
       const lineOutOn = lineOut.includes("[on]")
       const headphoneOn = headphone.includes("[on]")
@@ -78,16 +78,16 @@ export default function Audio() {
     try {
       switch (newMode) {
         case "speakers":
-          await execAsync(["amixer", "-c", "2", "sset", "Line Out", "on"])
-          await execAsync(["amixer", "-c", "2", "sset", "Headphone", "off"])
+          await execAsync(["amixer", "-c", "3", "sset", "Line Out", "on"])
+          await execAsync(["amixer", "-c", "3", "sset", "Headphone", "off"])
           break
         case "headphones":
-          await execAsync(["amixer", "-c", "2", "sset", "Line Out", "off"])
-          await execAsync(["amixer", "-c", "2", "sset", "Headphone", "on"])
+          await execAsync(["amixer", "-c", "3", "sset", "Line Out", "off"])
+          await execAsync(["amixer", "-c", "3", "sset", "Headphone", "on"])
           break
         case "both":
-          await execAsync(["amixer", "-c", "2", "sset", "Line Out", "on"])
-          await execAsync(["amixer", "-c", "2", "sset", "Headphone", "on"])
+          await execAsync(["amixer", "-c", "3", "sset", "Line Out", "on"])
+          await execAsync(["amixer", "-c", "3", "sset", "Headphone", "on"])
           break
       }
 
