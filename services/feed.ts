@@ -132,7 +132,10 @@ class FeedService {
     
     try {
       const trimmedUrl = url.trim()
-      if (trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://")) {
+      // Use GLib's URI parsing to validate URL format
+      const uri = Gio.Uri.parse(trimmedUrl, Gio.UriFlags.NONE)
+      const scheme = uri.get_scheme()
+      if (scheme === "http" || scheme === "https") {
         return trimmedUrl
       }
       console.warn("Invalid URL scheme rejected:", trimmedUrl)
