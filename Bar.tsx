@@ -21,11 +21,11 @@ function Workspaces() {
   const focused = createBinding(hyprland, "focusedWorkspace")
 
   return (
-    <box className="workspaces">
+    <box cssClasses={["workspaces"]}>
       <For each={workspaces}>
         {(ws) => (
           <button
-            className={focused((f) => f?.id === ws.id ? "focused" : "")}
+            cssClasses={focused((f) => f?.id === ws.id ? ["focused"] : [])}
             onClicked={() => ws.focus()}
           >
             <label label={ws.id.toString()} />
@@ -49,7 +49,7 @@ function Tray() {
   }
 
   return (
-    <box className="tray">
+    <box cssClasses={["tray"]}>
       <For each={items}>
         {(item) => (
           <menubutton $={(self) => init(self, item)}>
@@ -68,7 +68,7 @@ function Volume() {
   if (!speaker) return <box />
 
   return (
-    <menubutton className="volume">
+    <menubutton cssClasses={["volume"]}>
       <image iconName={createBinding(speaker, "volumeIcon")} />
       <popover>
         <box>
@@ -89,7 +89,7 @@ function Clock({ format = "%H:%M" }) {
   })
 
   return (
-    <menubutton className="clock">
+    <menubutton cssClasses={["clock"]}>
       <label label={time} />
       <popover>
         <Gtk.Calendar />

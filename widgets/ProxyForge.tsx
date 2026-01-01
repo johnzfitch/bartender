@@ -61,7 +61,7 @@ export default function ProxyForge() {
 
   return (
     <button
-      className={cssClass((c) => `proxyforge ${c}`)}
+      cssClasses={cssClass((c) => ["proxyforge", c])}
       tooltipText={tooltip}
       cursor={Gdk.Cursor.new_from_name("pointer", null)}
       $={(self) => self.add_controller(clickController)}

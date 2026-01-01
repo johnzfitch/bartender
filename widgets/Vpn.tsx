@@ -57,7 +57,7 @@ export default function Vpn() {
 
   return (
     <button
-      className={cssClass((c) => `vpn ${c}`)}
+      cssClasses={cssClass((c) => ["vpn", c])}
       tooltipText={tooltip}
       cursor={Gdk.Cursor.new_from_name("pointer", null)}
       $={(self) => self.add_controller(clickController)}

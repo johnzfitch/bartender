@@ -40,7 +40,7 @@ export default function Feed() {
 
   return (
     <button
-      className={statusClass((c) => `feed-ticker ${c}`)}
+      cssClasses={statusClass((c) => ["feed-ticker", c])}
       onClicked={() => feed.openCurrent()}
       cursor={Gdk.Cursor.new_from_name("pointer", null)}
       $={(self) => self.add_controller(hoverController)}

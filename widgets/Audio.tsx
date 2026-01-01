@@ -111,7 +111,7 @@ export default function Audio() {
 
   return (
     <button
-      className={mode((m) => `audio ${m}`)}
+      cssClasses={mode((m) => ["audio", m])}
       tooltipText={mode((m) => getTooltip(m))}
       onClicked={() => toggle()}
       cursor={Gdk.Cursor.new_from_name("pointer", null)}
