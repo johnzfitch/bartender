@@ -1,167 +1,230 @@
-# Bartender - AGS Status Bar
+# Bartender
 
-A GTK4 status bar built with AGS (Aylur's GTK Shell) to replace waybar.
+A GTK4 status bar built with [AGS](https://github.com/Aylur/ags) (Aylur's GTK Shell) for Hyprland. Designed to replace waybar with proper state management and transparency.
 
-## Running
-
-```bash
-# Development
-cd ~/dev/bartender
-nix develop --command ags run .
-
-# Kill
-pkill -9 gjs
-# or
-ags quit -i bartender
 ```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  1  2  3  4  5  │  HN: Front Page | Article Title Here...  │ ● ● 🔊 📡 🔒 Thu Jan 01 │
+│  ▲        ▲     │              ▲                           │     ▲              ▲    │
+│  │        │     │              │                           │     │              │    │
+│  │        │     │         Feed Ticker                      │   Status        Clock   │
+│  │        │     │        (click to open)                   │   Icons                 │
+│  │        │                                                                          │
+│  │     Occupied                                                                      │
+│  │     (dimmed)                                                                      │
+│  │                                                                                   │
+│  Focused                                                                             │
+│  (bright)                                                                            │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Features
+
+| | Feature | Description |
+|---|---------|-------------|
+| ![workspace](.github/assets/icons/workspace.png) | **Workspace Indicators** | 1-5 with visual states: focused, occupied, empty |
+| ![network](.github/assets/icons/network.png) | **Feed Ticker** | FreshRSS integration with atomic click handling |
+| ![vpn](.github/assets/icons/vpn.png) | **VPN Status** | Mullvad with rotation toggle (US/CA) |
+| ![lock](.github/assets/icons/lock.png) | **ProxyForge** | Debug proxy control (mitmdump) |
+| ![speaker](.github/assets/icons/speaker.png) | **Audio Toggle** | Speakers/headphones/both via ALSA |
+| ![monitor](.github/assets/icons/monitor.png) | **System Tray** | With intelligent icon filtering |
+
+Plus: transparent background, volume slider, clock with calendar popup
 
 ## Architecture
 
 ```
-bartender/
-├── app.tsx           # Entry point, creates bars per monitor
-├── Bar.tsx           # Main bar layout with all widgets
-├── services/         # Singleton services holding state
-│   ├── feed.ts       # FreshRSS feed fetcher
-│   ├── vpn.ts        # Mullvad VPN status + rotation
-│   └── proxyforge.ts # ProxyForge proxy control
-├── widgets/          # UI components
-│   ├── Feed.tsx      # Feed ticker display
-│   ├── Vpn.tsx       # VPN status icon
-│   ├── ProxyForge.tsx# Proxy status icon
-│   └── Audio.tsx     # Audio output toggle
-├── styles/
-│   └── style.scss    # All styling
-└── flake.nix         # Nix build config
+┌──────────────────────────────────────────────────────────────────┐
+│                           app.tsx                                │
+│                    (Entry point, per-monitor)                    │
+└─────────────────────────────┬────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                           Bar.tsx                                │
+│                     (Main layout component)                      │
+│  ┌─────────────┐  ┌─────────────────┐  ┌─────────────────────┐  │
+│  │    START    │  │     CENTER      │  │        END          │  │
+│  │ ┌─────────┐ │  │  ┌───────────┐  │  │ ┌────┐ ┌────────┐  │  │
+│  │ │Workspace│ │  │  │   Feed    │  │  │ │Tray│ │ Audio  │  │  │
+│  │ │ Buttons │ │  │  │  Ticker   │  │  │ └────┘ └────────┘  │  │
+│  │ └─────────┘ │  │  └───────────┘  │  │ ┌────┐ ┌────────┐  │  │
+│  │             │  │                 │  │ │Vol │ │Proxyfrg│  │  │
+│  │             │  │                 │  │ └────┘ └────────┘  │  │
+│  │             │  │                 │  │ ┌────┐ ┌────────┐  │  │
+│  │             │  │                 │  │ │VPN │ │ Clock  │  │  │
+│  │             │  │                 │  │ └────┘ └────────┘  │  │
+│  └─────────────┘  └─────────────────┘  └─────────────────────┘  │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-## Key Concepts
+## File Structure
 
-### Styling (style.scss)
+```
+bartender/
+├── flake.nix                 # Nix build configuration
+│
+├── app.tsx                   # Entry point - creates bars per monitor
+│                             # Sets up instanceName, requestHandler
+│
+├── Bar.tsx                   # Main bar layout
+│   ├── WorkspaceButton()     # Individual workspace with state
+│   ├── Workspaces()          # Container for 1-5 buttons
+│   ├── Tray()                # System tray with icon filtering
+│   ├── Volume()              # WirePlumber volume control
+│   └── Clock()               # Time + calendar popup
+│
+├── services/                 # Singleton state managers
+│   ├── feed.ts               # FreshRSS API, weighted random selection
+│   │                         # 5-min refresh, 8-sec cycle, pause on hover
+│   │
+│   ├── vpn.ts                # Mullvad status + rotation daemon
+│   │                         # 20-sec interval between US/CA servers
+│   │
+│   └── proxyforge.ts         # mitmdump process control
+│                             # Start/stop proxy, open viewer
+│
+├── widgets/                  # UI components using services
+│   ├── Feed.tsx              # Displays feed.current, click → openCurrent()
+│   ├── Vpn.tsx               # VPN icon + rotation toggle
+│   ├── ProxyForge.tsx        # Proxy status + controls
+│   └── Audio.tsx             # ALSA toggle (amixer card 3)
+│
+├── styles/
+│   └── style.scss            # GTK4 CSS with SCSS preprocessing
+│                             # Uses gtkalpha() for transparency
+│
+└── README.md                 # This file
+```
+
+## State Flow
+
+```
+┌─────────────────┐     subscribe()      ┌─────────────────┐
+│                 │ ◄─────────────────── │                 │
+│    Service      │                      │     Widget      │
+│   (Singleton)   │ ───────────────────► │   (Component)   │
+│                 │      _notify()       │                 │
+└────────┬────────┘                      └─────────────────┘
+         │
+         │  Holds state:
+         │  - articles[]
+         │  - current
+         │  - status
+         │
+         ▼
+┌─────────────────┐
+│   Click Event   │
+│                 │
+│ openCurrent() ──┼──► Reads this.current at call time
+│                 │    (No race condition!)
+└─────────────────┘
+```
+
+## Installation
+
+### Development
+
+```bash
+cd ~/dev/bartender
+nix develop --command ags run .
+```
+
+### Kill / Restart
+
+```bash
+# Kill bartender
+pkill -9 gjs
+# or
+ags quit -i bartender
+
+# Restart
+cd ~/dev/bartender && nix develop --command ags run .
+```
+
+### Autostart (Hyprland)
+
+Add to `~/.config/hypr/autostart.conf`:
+
+```conf
+# Disable waybar and use bartender instead
+exec-once = sleep 1 && pkill waybar
+exec-once = sleep 2 && cd ~/dev/bartender && nix develop --command ags run .
+```
+
+## Styling
 
 GTK4 CSS is NOT regular CSS. Key differences:
-- Use `background-color` not `background` for colors
-- No `!important`
-- Limited selectors (no `:has()`, limited pseudo-classes)
-- Colors: use `rgba(r, g, b, a)` format directly
 
-**Transparency**: The window background must be `transparent` and the centerbox gets the actual semi-transparent background:
+### Transparency
 
 ```scss
-window.bartender {
-  background: transparent;
+// SCSS wrapper for GTK alpha function
+@function gtkalpha($c, $a) {
+  @return string.unquote("alpha(#{$c},#{$a})");
+}
 
-  centerbox {
-    background: rgba(26, 27, 38, 0.8);  // semi-transparent
+window.bartender {
+  background: transparent;  // Window itself is transparent
+
+  > box {
+    background: gtkalpha(#1a1b26, 0.85);  // Inner box has alpha
   }
 }
 ```
 
-**Stripping button chrome**:
+### Stripping Button Chrome
+
 ```scss
 button {
-  all: unset;  // removes all default styling
+  all: unset;  // Remove ALL default GTK styling
   padding: 8px;
-  color: $foreground;
+  // Set colors per-widget, not globally
 }
 ```
 
-### Reactive State (AGS patterns)
+### Workspace States
 
-**createBinding** - reactive property binding:
-```tsx
-const focused = createBinding(hyprland, "focusedWorkspace")
-// Use in JSX:
-<label label={focused((f) => f?.name)} />
-```
+```scss
+.workspaces .ws {
+  color: rgba($foreground, 0.2);  // Empty (default)
 
-**createState** - local reactive state:
-```tsx
-const [value, setValue] = createState("initial")
-// Update triggers re-render:
-setValue("new value")
-```
-
-**Manual GObject subscription**:
-```tsx
-hyprland.connect("notify::focused-workspace", () => {
-  // Called when property changes
-})
-```
-
-### Layout (Bar.tsx)
-
-Uses `<centerbox>` with three sections:
-```tsx
-<centerbox>
-  <box $type="start">   {/* Left side */}
-  <box $type="center">  {/* Center */}
-  <box $type="end">     {/* Right side */}
-</centerbox>
-```
-
-### Workspaces
-
-WorkspaceButton component with manual state tracking:
-- `hyprland.workspaces` - array of existing workspaces
-- `hyprland.focusedWorkspace` - currently focused
-- Subscribe to `notify::focused-workspace` and `notify::workspaces` for updates
-
-CSS classes: `.ws.focused`, `.ws.occupied`, `.ws.empty`
-
-### System Tray
-
-Uses AstalTray. Filter items without icons:
-```tsx
-const hasIcon = item.gicon !== null || item.iconName
-if (!hasIcon) return <box />
-```
-
-### Services Pattern
-
-Singleton services with subscription:
-```ts
-class MyService {
-  private static _instance: MyService
-  private _listeners = new Set<() => void>()
-
-  static get_default() {
-    return this._instance ??= new MyService()
-  }
-
-  subscribe(cb: () => void) {
-    this._listeners.add(cb)
-    return () => this._listeners.delete(cb)
-  }
-
-  private _notify() {
-    this._listeners.forEach(cb => cb())
-  }
+  &.occupied { color: rgba($foreground, 0.7); }
+  &.focused { color: $foreground; font-weight: bold; }
 }
 ```
 
-## Common Issues
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `FRESHRSS_AUTH_TOKEN` | Auth token for FreshRSS API |
+
+## Dependencies
+
+Managed via `flake.nix`:
+
+- AGS with Astal packages (io, astal4, hyprland, tray, wireplumber, network, bluetooth, notifd)
+- `alsa-utils` - for amixer in Audio widget
+- `curl` - for feed fetching
+
+## Troubleshooting
 
 ### "instance has no request handler"
 AGS is already running. Kill with `pkill -9 gjs`
 
-### Styles not updating
-The SCSS is compiled at build time. Restart AGS after style changes.
-
-### Workspace states not showing
-Ensure both `notify::focused-workspace` and `notify::workspaces` signals are connected.
+### Workspace states not updating
+Ensure signals are connected:
+```tsx
+hyprland.connect("notify::focused-workspace", update)
+hyprland.connect("notify::workspaces", update)
+```
 
 ### No transparency
 - Window needs `background: transparent`
-- Centerbox needs the actual background color
-- Some compositors need specific settings
+- Use `gtkalpha()` for inner elements
+- Check compositor supports transparency
 
-## Dependencies (in flake.nix)
-
-- ags (with astal packages: io, astal4, hyprland, tray, wireplumber, network, bluetooth, notifd)
-- alsa-utils (for amixer in Audio widget)
-- curl (for feed fetching)
-
-## Environment Variables
-
-- `FRESHRSS_AUTH_TOKEN` - Auth token for FreshRSS API
+### Feed not loading
+- Verify `FRESHRSS_AUTH_TOKEN` is set
+- Check `curl` is available in nix shell
