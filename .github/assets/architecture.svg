@@ -1,0 +1,136 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#667eea"/>
+      <stop offset="100%" style="stop-color:#764ba2"/>
+    </linearGradient>
+    <linearGradient id="boxGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1b26"/>
+      <stop offset="100%" style="stop-color:#24283b"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <style>
+    .title { font-family: 'Inter', -apple-system, sans-serif; font-weight: 700; }
+    .label { font-family: 'Fira Code', monospace; font-size: 11px; }
+    .sublabel { font-family: 'Inter', sans-serif; font-size: 10px; fill: #8b949e; }
+    .box { fill: url(#boxGrad); stroke: #30363d; stroke-width: 1; rx: 6; }
+    .box-accent { fill: none; stroke: #58a6ff; stroke-width: 2; rx: 6; }
+    .connector { stroke: #30363d; stroke-width: 2; fill: none; }
+    .connector-accent { stroke: #58a6ff; stroke-width: 2; fill: none; stroke-dasharray: 4,2; }
+    .arrow { fill: #58a6ff; }
+  </style>
+
+  <!-- Background -->
+  <rect width="800" height="600" fill="#0d1117"/>
+
+  <!-- Title -->
+  <text x="400" y="35" class="title" font-size="24" fill="url(#headerGrad)" text-anchor="middle" filter="url(#glow)">BARTENDER ARCHITECTURE</text>
+  <text x="400" y="55" class="sublabel" text-anchor="middle" font-size="12">GTK4 Status Bar for Hyprland</text>
+
+  <!-- Bar Preview Section -->
+  <text x="50" y="90" class="label" fill="#8b949e">BAR LAYOUT</text>
+  <rect x="50" y="100" width="700" height="50" class="box"/>
+
+  <!-- Workspaces -->
+  <g transform="translate(60, 110)">
+    <text x="0" y="12" class="label" fill="#c0caf5" font-weight="bold">1</text>
+    <text x="18" y="12" class="label" fill="#6b7280">2</text>
+    <text x="36" y="12" class="label" fill="#6b7280">3</text>
+    <text x="54" y="12" class="label" fill="#3f4451">4</text>
+    <text x="72" y="12" class="label" fill="#3f4451">5</text>
+    <text x="0" y="30" class="sublabel">workspaces</text>
+  </g>
+
+  <!-- Feed Ticker (center) -->
+  <g transform="translate(300, 110)">
+    <text x="100" y="12" class="label" fill="#c0caf5" text-anchor="middle">HN: Article Title Here...</text>
+    <text x="100" y="30" class="sublabel" text-anchor="middle">feed ticker (click to open)</text>
+  </g>
+
+  <!-- Right side icons -->
+  <g transform="translate(550, 110)">
+    <circle cx="10" cy="8" r="5" fill="#9ece6a"/>
+    <circle cx="30" cy="8" r="5" fill="#e0af68"/>
+    <rect x="45" y="3" width="10" height="10" rx="2" fill="#c0caf5"/>
+    <text x="65" y="12" class="label" fill="#c0caf5">4:56 AM</text>
+    <text x="40" y="30" class="sublabel">status · clock</text>
+  </g>
+
+  <!-- Architecture Section -->
+  <text x="50" y="190" class="label" fill="#8b949e">COMPONENT HIERARCHY</text>
+
+  <!-- app.tsx box -->
+  <rect x="300" y="200" width="200" height="45" class="box-accent"/>
+  <text x="400" y="220" class="label" fill="#58a6ff" text-anchor="middle">app.tsx</text>
+  <text x="400" y="235" class="sublabel" text-anchor="middle">Entry · Per-monitor</text>
+
+  <!-- Arrow down -->
+  <path d="M400,245 L400,265" class="connector-accent"/>
+  <polygon points="400,275 395,265 405,265" class="arrow"/>
+
+  <!-- Bar.tsx box -->
+  <rect x="150" y="280" width="500" height="130" class="box"/>
+  <text x="400" y="300" class="label" fill="#c0caf5" text-anchor="middle">Bar.tsx</text>
+  <text x="400" y="315" class="sublabel" text-anchor="middle">Main layout component</text>
+
+  <!-- Three columns inside Bar.tsx -->
+  <!-- START -->
+  <rect x="170" y="325" width="120" height="70" rx="4" fill="#161b22" stroke="#30363d"/>
+  <text x="230" y="345" class="label" fill="#7aa2f7" text-anchor="middle">START</text>
+  <text x="230" y="365" class="sublabel" text-anchor="middle">Workspaces</text>
+
+  <!-- CENTER -->
+  <rect x="310" y="325" width="120" height="70" rx="4" fill="#161b22" stroke="#30363d"/>
+  <text x="370" y="345" class="label" fill="#7aa2f7" text-anchor="middle">CENTER</text>
+  <text x="370" y="365" class="sublabel" text-anchor="middle">Feed</text>
+
+  <!-- END -->
+  <rect x="450" y="325" width="180" height="70" rx="4" fill="#161b22" stroke="#30363d"/>
+  <text x="540" y="345" class="label" fill="#7aa2f7" text-anchor="middle">END</text>
+  <text x="540" y="365" class="sublabel" text-anchor="middle">Tray·Audio·Vol·VPN·Clock</text>
+
+  <!-- Services Section -->
+  <text x="50" y="440" class="label" fill="#8b949e">STATE MANAGEMENT</text>
+
+  <!-- Service box -->
+  <rect x="100" y="455" width="180" height="100" class="box"/>
+  <text x="190" y="480" class="label" fill="#9ece6a" text-anchor="middle">Service</text>
+  <text x="190" y="495" class="sublabel" text-anchor="middle">(Singleton)</text>
+  <text x="190" y="520" class="sublabel" text-anchor="middle">articles[]</text>
+  <text x="190" y="535" class="sublabel" text-anchor="middle">current · status</text>
+
+  <!-- Widget box -->
+  <rect x="380" y="455" width="180" height="100" class="box"/>
+  <text x="470" y="480" class="label" fill="#bb9af7" text-anchor="middle">Widget</text>
+  <text x="470" y="495" class="sublabel" text-anchor="middle">(Component)</text>
+  <text x="470" y="520" class="sublabel" text-anchor="middle">subscribe()</text>
+  <text x="470" y="535" class="sublabel" text-anchor="middle">renders on notify</text>
+
+  <!-- Bidirectional arrows -->
+  <path d="M280,480 L380,480" class="connector-accent"/>
+  <polygon points="375,475 385,480 375,485" class="arrow"/>
+  <text x="330" y="472" class="sublabel" text-anchor="middle">subscribe()</text>
+
+  <path d="M380,520 L280,520" class="connector-accent"/>
+  <polygon points="285,515 275,520 285,525" class="arrow"/>
+  <text x="330" y="512" class="sublabel" text-anchor="middle">_notify()</text>
+
+  <!-- Click handler highlight -->
+  <rect x="600" y="455" width="150" height="100" rx="6" fill="none" stroke="#f7768e" stroke-width="2" stroke-dasharray="4,2"/>
+  <text x="675" y="480" class="label" fill="#f7768e" text-anchor="middle">Click Event</text>
+  <text x="675" y="510" class="sublabel" text-anchor="middle">openCurrent()</text>
+  <text x="675" y="530" class="sublabel" text-anchor="middle">reads this.current</text>
+  <text x="675" y="545" class="sublabel" text-anchor="middle" fill="#9ece6a">No race condition!</text>
+
+  <!-- Arrow from widget to click -->
+  <path d="M560,505 L600,505" class="connector"/>
+  <polygon points="595,500 605,505 595,510" fill="#30363d"/>
+</svg>
