@@ -1,0 +1,186 @@
+// Import omarchy theme colors
+@import url("file:///home/zack/.config/omarchy/current/theme/waybar.css");
+
+// Fallback colors if theme doesn't define them
+$bg-fallback: #0B0C16;
+$fg-fallback: #ddf7ff;
+
+window.bartender {
+  background: transparent;
+  font-family: "Berkeley Mono", "JetBrainsMono Nerd Font", monospace;
+  font-size: 13px;
+  font-weight: bold;
+
+  > box {
+    background: alpha(@background, 0.85);
+    color: @foreground;
+    border-radius: 0;
+    padding: 4px 12px;
+  }
+
+  button {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 8px;
+    margin: 2px;
+    min-height: 0;
+    min-width: 0;
+    color: @foreground;
+    transition: background 150ms ease;
+
+    &:hover {
+      background: alpha(@foreground, 0.1);
+    }
+
+    &:active {
+      background: alpha(@foreground, 0.2);
+    }
+  }
+
+  menubutton {
+    background: transparent;
+    border: none;
+    padding: 4px 8px;
+    margin: 2px;
+
+    > button {
+      padding: 4px 8px;
+      margin: 0;
+    }
+  }
+
+  popover {
+    background: @background;
+    color: @foreground;
+    border: 1px solid alpha(@foreground, 0.2);
+    border-radius: 8px;
+    padding: 8px;
+
+    button {
+      padding: 6px 12px;
+      margin: 2px 0;
+      border-radius: 4px;
+
+      &:hover {
+        background: alpha(@foreground, 0.1);
+      }
+    }
+  }
+
+  // Workspaces
+  .workspaces {
+    button {
+      min-width: 24px;
+      padding: 4px 8px;
+
+      &.focused {
+        background: alpha(@foreground, 0.2);
+      }
+    }
+  }
+
+  // Feed ticker
+  .feed-ticker {
+    padding: 4px 12px;
+    max-width: 600px;
+
+    &.loading {
+      opacity: 0.6;
+    }
+
+    &.error {
+      color: #ff6b6b;
+    }
+
+    label {
+      font-weight: normal;
+    }
+  }
+
+  // Clock
+  .clock {
+    font-weight: bold;
+  }
+
+  // System tray
+  .tray {
+    menubutton {
+      padding: 2px 4px;
+    }
+
+    image {
+      min-width: 18px;
+      min-height: 18px;
+    }
+  }
+
+  // Volume
+  .volume {
+    slider {
+      min-height: 8px;
+      margin: 8px;
+
+      trough {
+        background: alpha(@foreground, 0.2);
+        border-radius: 4px;
+        min-height: 8px;
+      }
+
+      highlight {
+        background: @foreground;
+        border-radius: 4px;
+      }
+
+      slider {
+        background: @foreground;
+        border-radius: 50%;
+        min-width: 16px;
+        min-height: 16px;
+        margin: -4px;
+      }
+    }
+  }
+
+  // VPN
+  .vpn {
+    &.connected {
+      color: #50f872;
+    }
+
+    &.connecting {
+      color: #f7d750;
+    }
+
+    &.disconnected {
+      color: alpha(@foreground, 0.4);
+    }
+  }
+
+  // ProxyForge
+  .proxyforge {
+    &.proxyforge-active {
+      color: #50f872;
+    }
+
+    &.proxyforge-starting,
+    &.proxyforge-stopping {
+      color: #f7d750;
+    }
+
+    &.proxyforge-off {
+      color: alpha(@foreground, 0.4);
+    }
+  }
+
+  // Audio
+  .audio {
+    &.both {
+      color: #50f872;
+    }
+
+    &.muted {
+      color: #ff6b6b;
+    }
+  }
+}
