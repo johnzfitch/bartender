@@ -131,9 +131,50 @@ button {
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `FRESHRSS_AUTH_TOKEN` | Auth token for FreshRSS API |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `FRESHRSS_API_URL` | FreshRSS API endpoint URL | *(required)* |
+| `FRESHRSS_AUTH_TOKEN` | Auth token for FreshRSS API | *(required)* |
+| `AUDIO_CARD` | ALSA audio card number | `3` |
+| `PROXYFORGE_BIN_PATH` | Path to proxyforge binary | `~/.local/bin/proxyforge` |
+| `MULLVAD_VPN_PATH` | Path to Mullvad VPN application | `/opt/Mullvad VPN/mullvad-vpn` |
+
+### Setting Up Environment Variables
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` with your actual values:
+   ```bash
+   # FreshRSS API Configuration
+   FRESHRSS_API_URL=https://your-freshrss-instance.com/api/greader.php/reader/api/0/stream/contents/reading-list
+   FRESHRSS_AUTH_TOKEN=your_auth_token_here
+   
+   # Audio Configuration (optional - defaults to 3)
+   AUDIO_CARD=3
+   
+   # ProxyForge Configuration (optional)
+   PROXYFORGE_BIN_PATH=~/.local/bin/proxyforge
+   
+   # VPN Configuration (optional)
+   MULLVAD_VPN_PATH=/opt/Mullvad VPN/mullvad-vpn
+   ```
+
+3. Source the environment file before running:
+   ```bash
+   export $(cat .env | xargs) && nix develop --command ags run .
+   ```
+
+**Security Note**: Never commit your `.env` file to version control. The `.env.example` file is provided as a template showing required variables without exposing real credentials.
+
+## Security Considerations
+
+- **API Endpoints**: The FreshRSS API URL is configured via environment variable to avoid exposing infrastructure details in code
+- **URL Validation**: All URLs from external feeds are validated to only allow `http://` and `https://` schemes, preventing execution of dangerous schemes like `javascript:` or `file://`
+- **Credentials**: Authentication tokens must be stored in environment variables, not hardcoded in source
+- **Path Configuration**: System paths are configurable to avoid hardcoded assumptions about system layout
 
 ## Dependencies
 
