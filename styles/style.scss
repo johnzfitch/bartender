@@ -1,9 +1,6 @@
-// Import omarchy theme colors
-@import url("file:///home/zack/.config/omarchy/current/theme/waybar.css");
-
-// Fallback colors if theme doesn't define them
-$bg-fallback: #0B0C16;
-$fg-fallback: #ddf7ff;
+// Theme colors - hackerman defaults
+$background: #0B0C16;
+$foreground: #ddf7ff;
 
 window.bartender {
   background: transparent;
@@ -12,8 +9,8 @@ window.bartender {
   font-weight: bold;
 
   > box {
-    background: alpha(@background, 0.85);
-    color: @foreground;
+    background: rgba($background, 0.85);
+    color: $foreground;
     border-radius: 0;
     padding: 4px 12px;
   }
@@ -26,15 +23,15 @@ window.bartender {
     margin: 2px;
     min-height: 0;
     min-width: 0;
-    color: @foreground;
+    color: $foreground;
     transition: background 150ms ease;
 
     &:hover {
-      background: alpha(@foreground, 0.1);
+      background: rgba($foreground, 0.1);
     }
 
     &:active {
-      background: alpha(@foreground, 0.2);
+      background: rgba($foreground, 0.2);
     }
   }
 
@@ -51,9 +48,9 @@ window.bartender {
   }
 
   popover {
-    background: @background;
-    color: @foreground;
-    border: 1px solid alpha(@foreground, 0.2);
+    background: $background;
+    color: $foreground;
+    border: 1px solid rgba($foreground, 0.2);
     border-radius: 8px;
     padding: 8px;
 
@@ -63,7 +60,7 @@ window.bartender {
       border-radius: 4px;
 
       &:hover {
-        background: alpha(@foreground, 0.1);
+        background: rgba($foreground, 0.1);
       }
     }
   }
@@ -75,7 +72,7 @@ window.bartender {
       padding: 4px 8px;
 
       &.focused {
-        background: alpha(@foreground, 0.2);
+        background: rgba($foreground, 0.2);
       }
     }
   }
@@ -122,18 +119,18 @@ window.bartender {
       margin: 8px;
 
       trough {
-        background: alpha(@foreground, 0.2);
+        background: rgba($foreground, 0.2);
         border-radius: 4px;
         min-height: 8px;
       }
 
       highlight {
-        background: @foreground;
+        background: $foreground;
         border-radius: 4px;
       }
 
       slider {
-        background: @foreground;
+        background: $foreground;
         border-radius: 50%;
         min-width: 16px;
         min-height: 16px;
@@ -153,7 +150,7 @@ window.bartender {
     }
 
     &.disconnected {
-      color: alpha(@foreground, 0.4);
+      color: rgba($foreground, 0.4);
     }
   }
 
@@ -169,7 +166,7 @@ window.bartender {
     }
 
     &.proxyforge-off {
-      color: alpha(@foreground, 0.4);
+      color: rgba($foreground, 0.4);
     }
   }
 
