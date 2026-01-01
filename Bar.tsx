@@ -25,6 +25,7 @@ function WorkspaceButton({ id, hyprland }: { id: number; hyprland: AstalHyprland
     if (isFocused) cls.push("focused")
     else if (isOccupied) cls.push("occupied")
     else cls.push("empty")
+    console.log(`WS ${id}: focused=${isFocused}, occupied=${isOccupied}, classes=${cls.join(",")}`)
     return cls
   }
 

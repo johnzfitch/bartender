@@ -1,5 +1,10 @@
 // Bartender - Clean utilitarian bar
-// No chrome, no bubbles, just information
+@use "sass:string";
+
+// GTK alpha function wrapper
+@function gtkalpha($c, $a) {
+  @return string.unquote("alpha(#{$c},#{$a})");
+}
 
 $background: #1a1b26;
 $foreground: #c0caf5;
@@ -11,26 +16,13 @@ $red: #f7768e;
 
 window.bartender {
   background: transparent;
-  background-color: transparent;
   font-family: "Berkeley Mono", "JetBrainsMono Nerd Font", monospace;
   font-size: 13px;
+  color: $foreground;
 
-  * {
-    background: transparent;
-    background-color: transparent;
-  }
-
-  > box,
-  centerbox {
-    background: rgba(26, 27, 38, 0.8);
-    background-color: rgba(26, 27, 38, 0.8);
-    color: $foreground;
+  > box {
+    background: gtkalpha($background, 0.85);
     padding: 0 8px;
-  }
-
-  centerbox > box {
-    background: transparent;
-    background-color: transparent;
   }
 
   // Strip ALL button chrome
@@ -38,12 +30,7 @@ window.bartender {
   menubutton > button {
     all: unset;
     padding: 8px 6px;
-    color: $foreground;
     transition: color 100ms ease;
-
-    &:hover {
-      color: $accent;
-    }
   }
 
   menubutton {
@@ -83,10 +70,12 @@ window.bartender {
   }
 
   // Clock - clean
-  .clock {
-    button {
-      padding: 8px 12px;
-      color: $foreground;
+  .clock button {
+    padding: 8px 12px;
+    color: $foreground;
+
+    &:hover {
+      color: $accent;
     }
   }
 
@@ -116,6 +105,11 @@ window.bartender {
   .tray {
     menubutton > button {
       padding: 8px 4px;
+      color: $foreground;
+
+      &:hover {
+        color: $accent;
+      }
     }
 
     image {
@@ -129,6 +123,11 @@ window.bartender {
   .volume {
     > button {
       padding: 8px 6px;
+      color: $foreground;
+
+      &:hover {
+        color: $accent;
+      }
     }
 
     slider {
