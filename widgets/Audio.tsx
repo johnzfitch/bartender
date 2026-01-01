@@ -9,10 +9,13 @@ export default function Audio() {
   const [mode, setMode] = createState<AudioMode>("speakers")
   const [icon, setIcon] = createState("audio-speakers-symbolic")
 
+  // Get audio card from environment variable with fallback to 3
+  const audioCard = GLib.getenv("AUDIO_CARD") || "3"
+
   async function refresh(): Promise<void> {
     try {
-      const lineOut = await execAsync(["amixer", "-c", "3", "sget", "Line Out"])
-      const headphone = await execAsync(["amixer", "-c", "3", "sget", "Headphone"])
+      const lineOut = await execAsync(["amixer", "-c", audioCard, "sget", "Line Out"])
+      const headphone = await execAsync(["amixer", "-c", audioCard, "sget", "Headphone"])
 
       const lineOutOn = lineOut.includes("[on]")
       const headphoneOn = headphone.includes("[on]")
@@ -78,16 +81,16 @@ export default function Audio() {
     try {
       switch (newMode) {
         case "speakers":
-          await execAsync(["amixer", "-c", "3", "sset", "Line Out", "on"])
-          await execAsync(["amixer", "-c", "3", "sset", "Headphone", "off"])
+          await execAsync(["amixer", "-c", audioCard, "sset", "Line Out", "on"])
+          await execAsync(["amixer", "-c", audioCard, "sset", "Headphone", "off"])
           break
         case "headphones":
-          await execAsync(["amixer", "-c", "3", "sset", "Line Out", "off"])
-          await execAsync(["amixer", "-c", "3", "sset", "Headphone", "on"])
+          await execAsync(["amixer", "-c", audioCard, "sset", "Line Out", "off"])
+          await execAsync(["amixer", "-c", audioCard, "sset", "Headphone", "on"])
           break
         case "both":
-          await execAsync(["amixer", "-c", "3", "sset", "Line Out", "on"])
-          await execAsync(["amixer", "-c", "3", "sset", "Headphone", "on"])
+          await execAsync(["amixer", "-c", audioCard, "sset", "Line Out", "on"])
+          await execAsync(["amixer", "-c", audioCard, "sset", "Headphone", "on"])
           break
       }
 

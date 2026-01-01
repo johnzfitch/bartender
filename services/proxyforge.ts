@@ -49,6 +49,7 @@ class ProxyForgeService {
 
   async toggle(): Promise<void> {
     const flagFile = GLib.get_home_dir() + "/.cache/proxyforge-enabled"
+    const proxyForgeBin = GLib.getenv("PROXYFORGE_BIN_PATH") || GLib.get_home_dir() + "/.local/bin/proxyforge"
 
     if (this.status === "active" || this.status === "starting") {
       // Stop proxy
@@ -72,7 +73,7 @@ class ProxyForgeService {
         // Create flag file
         await execAsync(["touch", flagFile])
         // Start proxyforge
-        await execAsync([GLib.get_home_dir() + "/.local/bin/proxyforge"])
+        await execAsync([proxyForgeBin])
         await this._sendNotification("ProxyForge", "Proxy started")
       } catch (e) {
         console.error("Failed to start proxy:", e)
@@ -98,8 +99,8 @@ class ProxyForgeService {
   private async _sendNotification(title: string, body: string): Promise<void> {
     try {
       await execAsync(["notify-send", title, body])
-    } catch {
-      // Ignore notification errors
+    } catch (e) {
+      console.warn("Failed to send notification:", e)
     }
   }
 

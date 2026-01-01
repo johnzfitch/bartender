@@ -59,8 +59,13 @@ class FeedService {
         throw new Error("FRESHRSS_AUTH_TOKEN not set")
       }
 
+      const apiUrl = GLib.getenv("FRESHRSS_API_URL")
+      if (!apiUrl) {
+        throw new Error("FRESHRSS_API_URL not set")
+      }
+
       const since = Math.floor(Date.now() / 1000) - 36 * 3600
-      const url = `https://feed.internetuniverse.org/api/greader.php/reader/api/0/stream/contents/reading-list?n=100&ot=${since}&output=json`
+      const url = `${apiUrl}?n=100&ot=${since}&output=json`
 
       // Use curl for HTTP request (AGS doesn't have native fetch in all versions)
       const result = await execAsync([
@@ -115,9 +120,31 @@ class FeedService {
       const match = item.summary?.content?.match(
         /https:\/\/news\.ycombinator\.com\/item\?id=\d+/
       )
-      if (match) return match[0]
+      if (match) return this._validateUrl(match[0])
     }
-    return item.alternate?.[0]?.href || item.canonical?.[0]?.href || ""
+    const url = item.alternate?.[0]?.href || item.canonical?.[0]?.href || ""
+    return this._validateUrl(url)
+  }
+
+  private _validateUrl(url: string): string {
+    // Only allow http:// and https:// URLs for security
+    if (!url) return ""
+    
+    try {
+      const trimmedUrl = url.trim()
+      // Use GLib's URI parsing to validate URL format
+      const uri = Gio.Uri.parse(trimmedUrl, Gio.UriFlags.NONE)
+      const scheme = uri.get_scheme()
+      // Ensure scheme exists and is http or https
+      if (scheme && (scheme === "http" || scheme === "https")) {
+        return trimmedUrl
+      }
+      console.warn("Invalid URL scheme rejected:", scheme || "null")
+      return ""
+    } catch (e) {
+      console.error("URL validation error:", e)
+      return ""
+    }
   }
 
   private _selectNext(): void {
