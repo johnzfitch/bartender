@@ -72,7 +72,20 @@
           })
           pkgs.alsa-utils
           pkgs.curl
+          # Fonts
+          pkgs.ibm-plex
+          pkgs.fira
+          pkgs.fira-code
+          pkgs.jetbrains-mono
+          pkgs.nerd-fonts.jetbrains-mono
+          pkgs.nerd-fonts.fira-code
+          pkgs.fontconfig
         ];
+        # Ensure system fonts are accessible
+        shellHook = ''
+          export FONTCONFIG_FILE=${pkgs.fontconfig.out}/etc/fonts/fonts.conf
+          export XDG_DATA_DIRS="$HOME/.local/share:$XDG_DATA_DIRS"
+        '';
       };
     };
   };

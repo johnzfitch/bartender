@@ -48,7 +48,7 @@ export default function Feed() {
       <label
         label={displayText}
         ellipsize={3} // PANGO_ELLIPSIZE_END
-        maxWidthChars={100}
+        maxWidthChars={150}
       />
     </button>
   )

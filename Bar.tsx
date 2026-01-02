@@ -165,6 +165,7 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
       gdkmonitor={gdkmonitor}
       exclusivity={Astal.Exclusivity.EXCLUSIVE}
       anchor={TOP | LEFT | RIGHT}
+      marginBottom={12}
       application={app}
     >
       <centerbox>
@@ -174,7 +175,7 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
         <box $type="center">
           <Feed />
         </box>
-        <box $type="end" spacing={8}>
+        <box $type="end">
           <Tray />
           <Audio />
           <Volume />
