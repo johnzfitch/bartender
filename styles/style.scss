@@ -105,17 +105,15 @@ window.bartender {
   .tray {
     menubutton > button {
       padding: 8px 4px;
-      color: $foreground;
 
-      &:hover {
-        color: $accent;
+      &:hover image {
+        opacity: 0.8;
       }
     }
 
     image {
       min-width: 16px;
       min-height: 16px;
-      -gtk-icon-style: symbolic;
     }
   }
 

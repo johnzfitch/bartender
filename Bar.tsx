@@ -57,6 +57,11 @@ function Workspaces() {
   )
 }
 
+// Icon overrides for tray apps with poor dark theme icons
+const TRAY_ICON_OVERRIDES: Record<string, string> = {
+  kgpg: "security-high-symbolic",
+}
+
 function Tray() {
   const tray = AstalTray.get_default()
   const items = createBinding(tray, "items")
@@ -69,21 +74,30 @@ function Tray() {
     })
   }
 
+  const getIconForItem = (item: AstalTray.TrayItem) => {
+    // Check for icon override by ID
+    const overrideIcon = TRAY_ICON_OVERRIDES[item.id]
+    if (overrideIcon) {
+      return <image iconName={overrideIcon} />
+    }
+    // Use the item's own icon
+    if (item.gicon) {
+      return <image gicon={createBinding(item, "gicon")} />
+    }
+    return <image iconName={createBinding(item, "iconName")} />
+  }
+
   return (
     <box cssClasses={["tray"]}>
       <For each={items}>
         {(item) => {
           // Skip items with no usable icon
-          const hasIcon = item.gicon !== null || (item.iconName && item.iconName.length > 0)
+          const hasIcon = item.gicon !== null || (item.iconName && item.iconName.length > 0) || TRAY_ICON_OVERRIDES[item.id]
           if (!hasIcon) return <box />
 
           return (
             <menubutton $={(self) => init(self, item)} tooltipText={item.title || item.id}>
-              {item.gicon ? (
-                <image gicon={createBinding(item, "gicon")} />
-              ) : (
-                <image iconName={createBinding(item, "iconName")} />
-              )}
+              {getIconForItem(item)}
             </menubutton>
           )
         }}
