@@ -1,6 +1,6 @@
 import GLib from "gi://GLib"
-import Gio from "gi://Gio"
 import { execAsync } from "ags/process"
+import ConfigService from "./config"
 
 export interface Article {
   id: string
@@ -28,6 +28,9 @@ class FeedService {
   // Half-life for exponential decay (3 hours in seconds)
   private readonly HALF_LIFE = 3 * 3600
 
+  // Default RSS feed URL
+  private readonly DEFAULT_FEED_URL = "https://feed.internetuniverse.org/i/?a=rss&user=zack&token=abc123111&hours=168"
+
   static get_default(): FeedService {
     if (!this._instance) {
       this._instance = new FeedService()
@@ -54,31 +57,22 @@ class FeedService {
     this._notify()
 
     try {
-      const token = GLib.getenv("FRESHRSS_AUTH_TOKEN")
-      if (!token) {
-        throw new Error("FRESHRSS_AUTH_TOKEN not set")
-      }
+      // Get feed URL from config, env var, or use default
+      const config = ConfigService.get_default()
+      const configUrl = config.config.widgets?.feed?.url
+      const feedUrl = GLib.getenv("RSS_FEED_URL") || configUrl || this.DEFAULT_FEED_URL
 
-      const apiUrl = GLib.getenv("FRESHRSS_API_URL")
-      if (!apiUrl) {
-        throw new Error("FRESHRSS_API_URL not set")
-      }
-
-      const since = Math.floor(Date.now() / 1000) - 36 * 3600
-      const url = `${apiUrl}?n=100&ot=${since}&output=json`
-
-      // Use curl for HTTP request (AGS doesn't have native fetch in all versions)
+      // Fetch RSS feed
       const result = await execAsync([
         "curl",
         "-s",
         "-f",
-        url,
-        "-H",
-        `Authorization: GoogleLogin auth=${token}`,
+        "--max-time",
+        "15",
+        feedUrl,
       ])
 
-      const data = JSON.parse(result)
-      this.articles = this._parseArticles(data.items || [])
+      this.articles = this._parseRss(result)
       this.status = "ready"
       this.error = ""
 
@@ -94,57 +88,87 @@ class FeedService {
     this._notify()
   }
 
-  private _parseArticles(items: any[]): Article[] {
+  private _parseRss(xml: string): Article[] {
     const now = Date.now() / 1000
+    const articles: Article[] = []
 
-    return items
-      .filter((item) => item.title)
-      .map((item) => {
-        const ageSeconds = now - item.published
-        const weight = Math.exp((-0.693147 * ageSeconds) / this.HALF_LIFE)
+    // Simple XML parsing for RSS items
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g
+    let match
 
-        return {
-          id: item.id,
-          title: item.title,
-          source: item.origin?.title || "Feed",
-          url: this._extractUrl(item),
-          published: item.published,
-          weight,
+    while ((match = itemRegex.exec(xml)) !== null) {
+      const itemXml = match[1]
+
+      const title = this._extractTag(itemXml, "title")
+      const link = this._extractTag(itemXml, "link")
+      const guid = this._extractTag(itemXml, "guid")
+      const pubDate = this._extractTag(itemXml, "pubDate")
+      const category = this._extractTag(itemXml, "category")
+      const creator = this._extractTag(itemXml, "dc:creator")
+
+      if (!title || !link) continue
+
+      // Parse date
+      let published = now
+      if (pubDate) {
+        try {
+          published = new Date(pubDate).getTime() / 1000
+        } catch {
+          published = now
         }
+      }
+
+      // Calculate weight based on age (newer = higher weight)
+      const ageSeconds = now - published
+      const weight = Math.exp((-0.693147 * ageSeconds) / this.HALF_LIFE)
+
+      // Use category or creator as source
+      const source = category || creator || "Feed"
+
+      articles.push({
+        id: guid || link,
+        title: this._decodeHtml(title),
+        source: this._decodeHtml(source),
+        url: this._validateUrl(link),
+        published,
+        weight,
       })
+    }
+
+    return articles
   }
 
-  private _extractUrl(item: any): string {
-    // Special handling for Hacker News - prefer comment page
-    if (item.origin?.title?.includes("Hacker News")) {
-      const match = item.summary?.content?.match(
-        /https:\/\/news\.ycombinator\.com\/item\?id=\d+/
-      )
-      if (match) return this._validateUrl(match[0])
-    }
-    const url = item.alternate?.[0]?.href || item.canonical?.[0]?.href || ""
-    return this._validateUrl(url)
+  private _extractTag(xml: string, tag: string): string {
+    // Handle CDATA sections
+    const cdataRegex = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>`, "i")
+    const cdataMatch = xml.match(cdataRegex)
+    if (cdataMatch) return cdataMatch[1].trim()
+
+    // Handle regular tags
+    const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i")
+    const match = xml.match(regex)
+    return match ? match[1].trim() : ""
+  }
+
+  private _decodeHtml(text: string): string {
+    return text
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'")
   }
 
   private _validateUrl(url: string): string {
-    // Only allow http:// and https:// URLs for security
     if (!url) return ""
-    
-    try {
-      const trimmedUrl = url.trim()
-      // Use GLib's URI parsing to validate URL format
-      const uri = Gio.Uri.parse(trimmedUrl, Gio.UriFlags.NONE)
-      const scheme = uri.get_scheme()
-      // Ensure scheme exists and is http or https
-      if (scheme && (scheme === "http" || scheme === "https")) {
-        return trimmedUrl
-      }
-      console.warn("Invalid URL scheme rejected:", scheme || "null")
-      return ""
-    } catch (e) {
-      console.error("URL validation error:", e)
-      return ""
+
+    const trimmedUrl = url.trim()
+    // Only allow http:// and https:// URLs
+    if (trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://")) {
+      return trimmedUrl
     }
+    return ""
   }
 
   private _selectNext(): void {
@@ -181,7 +205,6 @@ class FeedService {
     this._paused = false
   }
 
-  // Critical: Opens the CURRENT article - no race condition
   openCurrent(): void {
     if (this.current?.url) {
       execAsync(["xdg-open", this.current.url]).catch((e) =>
@@ -191,7 +214,6 @@ class FeedService {
   }
 
   private _startRefreshLoop(): void {
-    // Initial fetch
     this.refresh()
 
     // Refresh every 5 minutes

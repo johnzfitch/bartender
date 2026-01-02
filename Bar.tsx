@@ -9,11 +9,18 @@ import AstalTray from "gi://AstalTray"
 import { For, createBinding, createState, onCleanup } from "ags"
 import { createPoll } from "ags/time"
 
+// Services
+import ConfigService from "./services/config"
+
 // Custom widgets
 import Feed from "./widgets/Feed"
 import Vpn from "./widgets/Vpn"
 import ProxyForge from "./widgets/ProxyForge"
 import Audio from "./widgets/Audio"
+import Wifi from "./widgets/Wifi"
+import Bluetooth from "./widgets/Bluetooth"
+import Weather from "./widgets/Weather"
+import AudioMixer from "./widgets/AudioMixer"
 
 function WorkspaceButton({ id, hyprland }: { id: number; hyprland: AstalHyprland.Hyprland }) {
   const [classes, setClasses] = createState<string[]>(getClasses())
@@ -43,7 +50,7 @@ function WorkspaceButton({ id, hyprland }: { id: number; hyprland: AstalHyprland
   )
 }
 
-function Workspaces() {
+export function Workspaces() {
   const hyprland = AstalHyprland.get_default()
 
   return (
@@ -62,7 +69,7 @@ const TRAY_ICON_OVERRIDES: Record<string, string> = {
   kgpg: "security-high-symbolic",
 }
 
-function Tray() {
+export function Tray() {
   const tray = AstalTray.get_default()
   const items = createBinding(tray, "items")
 
@@ -106,7 +113,7 @@ function Tray() {
   )
 }
 
-function Volume() {
+export function Volume() {
   const wp = AstalWp.get_default()
   const speaker = wp?.defaultSpeaker
 
@@ -128,24 +135,78 @@ function Volume() {
   )
 }
 
-function Clock({ format = "%H:%M" }) {
+export function Clock() {
+  const config = ConfigService.get_default()
+  const widgetConfig = config.getWidgetConfig<{ format?: string }>("clock")
+  const format = widgetConfig?.format || "%a %b %d %l:%M %p"
+
   const time = createPoll("", 1000, () => {
     return GLib.DateTime.new_now_local().format(format)!
   })
 
+  // Import notification panel toggle dynamically to avoid circular deps
+  const toggleNotificationPanel = async () => {
+    const { togglePanel } = await import("./widgets/NotificationPanel")
+    togglePanel()
+  }
+
   return (
-    <menubutton cssClasses={["clock"]}>
+    <button cssClasses={["clock"]} onClicked={toggleNotificationPanel}>
       <label label={time} />
-      <popover>
-        <Gtk.Calendar />
-      </popover>
-    </menubutton>
+    </button>
+  )
+}
+
+// Widget registry - maps widget names to their components
+type WidgetComponent = () => JSX.Element
+const WIDGET_MAP: Record<string, WidgetComponent> = {
+  workspaces: Workspaces,
+  tray: Tray,
+  volume: Volume,
+  clock: Clock,
+  feed: Feed,
+  vpn: Vpn,
+  proxyforge: ProxyForge,
+  audio: Audio,
+  wifi: Wifi,
+  bluetooth: Bluetooth,
+  weather: Weather,
+  audiomixer: AudioMixer,
+}
+
+// Renders a widget by name if it's enabled in config
+function Widget({ name }: { name: string }) {
+  const config = ConfigService.get_default()
+
+  if (!config.isEnabled(name)) {
+    return <box />
+  }
+
+  const Component = WIDGET_MAP[name]
+  if (!Component) {
+    console.warn(`Unknown widget: ${name}`)
+    return <box />
+  }
+
+  return <Component />
+}
+
+// Renders a section of widgets (left, center, or right)
+function WidgetSection({ widgets }: { widgets: string[] }) {
+  return (
+    <box>
+      {widgets.map((name) => (
+        <Widget name={name} />
+      ))}
+    </box>
   )
 }
 
 export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
   let win: Astal.Window
   const { TOP, LEFT, RIGHT } = Astal.WindowAnchor
+  const config = ConfigService.get_default()
+  const { layout } = config.config
 
   onCleanup(() => {
     win.destroy()
@@ -170,18 +231,13 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
     >
       <centerbox>
         <box $type="start" spacing={8}>
-          <Workspaces />
+          <WidgetSection widgets={layout.left} />
         </box>
         <box $type="center">
-          <Feed />
+          <WidgetSection widgets={layout.center} />
         </box>
         <box $type="end">
-          <Tray />
-          <Audio />
-          <Volume />
-          <ProxyForge />
-          <Vpn />
-          <Clock format="%a %b %d %l:%M %p" />
+          <WidgetSection widgets={layout.right} />
         </box>
       </centerbox>
     </window>

@@ -189,8 +189,526 @@ window.bartender {
     &.muted { color: $red; }
   }
 
+  // WiFi widget
+  .wifi {
+    > button {
+      padding: 8px 10px;
+      color: $foreground;
+
+      &:hover {
+        color: $accent;
+      }
+
+      image {
+        min-width: 18px;
+        min-height: 18px;
+      }
+    }
+
+    &.unavailable {
+      opacity: 0;
+      min-width: 0;
+      min-height: 0;
+      padding: 0;
+      margin: 0;
+    }
+  }
+
+  .wifi-popover {
+    min-width: 250pt;
+
+    .wifi-header {
+      padding: 4px 8px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba($foreground, 0.1);
+
+      label {
+        font-weight: bold;
+      }
+    }
+
+    .wifi-list {
+      .wifi-ap {
+        padding: 6px 8px;
+        border-radius: 4px;
+
+        &:hover {
+          background: rgba($foreground, 0.1);
+        }
+
+        &.active {
+          color: $green;
+        }
+
+        image {
+          min-width: 16px;
+          min-height: 16px;
+          margin-right: 8px;
+        }
+      }
+    }
+  }
+
+  // Bluetooth widget
+  .bluetooth {
+    > button {
+      padding: 8px 10px;
+      color: $dim;
+
+      &:hover {
+        color: $accent;
+      }
+
+      image {
+        min-width: 18px;
+        min-height: 18px;
+      }
+    }
+
+    &.connected > button {
+      color: $accent;
+    }
+
+    &.unavailable {
+      opacity: 0;
+      min-width: 0;
+      min-height: 0;
+      padding: 0;
+      margin: 0;
+    }
+  }
+
+  .bluetooth-popover {
+    min-width: 250px;
+
+    .bluetooth-header {
+      padding: 4px 8px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba($foreground, 0.1);
+
+      label {
+        font-weight: bold;
+      }
+
+      switch {
+        margin-left: auto;
+      }
+    }
+
+    .bluetooth-list {
+      .bt-device {
+        padding: 6px 8px;
+        border-radius: 4px;
+
+        &:hover {
+          background: rgba($foreground, 0.1);
+        }
+
+        &.connected {
+          color: $green;
+        }
+
+        image {
+          min-width: 16px;
+          min-height: 16px;
+          margin-right: 8px;
+        }
+      }
+    }
+  }
+
+  // Audio Mixer widget
+  .audio-mixer {
+    > button {
+      padding: 8px 10px;
+      color: $foreground;
+
+      &:hover {
+        color: $accent;
+      }
+
+      image {
+        min-width: 18px;
+        min-height: 18px;
+      }
+    }
+
+    &.unavailable {
+      opacity: 0;
+      min-width: 0;
+      min-height: 0;
+      padding: 0;
+      margin: 0;
+    }
+  }
+
+  .mixer-popover {
+    min-width: 300px;
+    padding: 8px;
+
+    .mixer-master {
+      padding: 8px;
+      margin-bottom: 8px;
+
+      image {
+        min-width: 20px;
+        min-height: 20px;
+        margin-right: 8px;
+      }
+
+      label {
+        margin-right: 8px;
+      }
+
+      slider {
+        min-height: 6px;
+
+        trough {
+          background: rgba($foreground, 0.15);
+          border-radius: 3px;
+          min-height: 6px;
+        }
+
+        highlight {
+          background: $accent;
+          border-radius: 3px;
+        }
+
+        slider {
+          background: $foreground;
+          border-radius: 50%;
+          min-width: 12px;
+          min-height: 12px;
+          margin: -3px;
+        }
+      }
+    }
+
+    .mixer-divider {
+      background: rgba($foreground, 0.1);
+      min-height: 1px;
+      margin: 4px 0;
+    }
+
+    .mixer-section-label {
+      font-size: 12px;
+      color: $dim;
+      padding: 4px 8px;
+    }
+
+    .mixer-apps {
+      .mixer-app {
+        padding: 6px 8px;
+        border-radius: 4px;
+
+        &:hover {
+          background: rgba($foreground, 0.05);
+        }
+
+        image {
+          min-width: 16px;
+          min-height: 16px;
+          margin-right: 8px;
+        }
+
+        label {
+          margin-right: 8px;
+        }
+
+        .mute-btn {
+          padding: 4px;
+          border-radius: 4px;
+          margin-right: 4px;
+
+          &:hover {
+            background: rgba($foreground, 0.1);
+          }
+
+          &.muted {
+            color: $red;
+          }
+
+          image {
+            min-width: 14px;
+            min-height: 14px;
+            margin: 0;
+          }
+        }
+
+        slider {
+          min-height: 4px;
+
+          trough {
+            background: rgba($foreground, 0.15);
+            border-radius: 2px;
+            min-height: 4px;
+          }
+
+          highlight {
+            background: $accent;
+            border-radius: 2px;
+          }
+
+          slider {
+            background: $foreground;
+            border-radius: 50%;
+            min-width: 10px;
+            min-height: 10px;
+            margin: -3px;
+          }
+        }
+      }
+    }
+  }
+
+  // Weather widget
+  .weather {
+    > button {
+      padding: 8px 10px;
+      color: $foreground;
+
+      &:hover {
+        color: $accent;
+      }
+    }
+
+    &.loading {
+      color: $dim;
+    }
+
+    &.error {
+      color: $red;
+    }
+
+    &.rainy {
+      color: $accent;
+    }
+
+    &.snowy {
+      color: $foreground;
+    }
+
+    .weather-content {
+      // GTK overlay positioning is handled by the widget itself
+    }
+
+    .weather-particles {
+      // DrawingArea overlay - positioned via GTK layout
+      opacity: 0.8;
+    }
+
+    .weather-info {
+      image {
+        min-width: 18px;
+        min-height: 18px;
+        margin-right: 6px;
+      }
+    }
+  }
+
+  .weather-popover {
+    padding: 6px 10px;
+
+    .weather-condition {
+      font-size: 12px;
+      color: $foreground;
+      margin-bottom: 4px;
+    }
+
+    .weather-details {
+      font-size: 11px;
+      color: $dim;
+
+      .weather-sep {
+        margin: 0 6px;
+        color: rgba($foreground, 0.3);
+      }
+    }
+  }
+
   // All images/icons inherit color
   image {
     -gtk-icon-style: symbolic;
+  }
+}
+
+// Notification Panel - separate window
+window.notification-panel {
+  background: transparent;
+  font-family: "IBM Plex Sans", "SF Pro Display", "Fira Sans", "Berkeley Mono", sans-serif;
+  font-size: 14px;
+  color: $foreground;
+
+  .panel-content {
+    background: string.unquote("alpha(#{$background}, 0.95)");
+    border-radius: 8px;
+    border: 1px solid rgba($foreground, 0.1);
+    min-width: 380px;
+  }
+
+  .panel-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba($foreground, 0.1);
+
+    .panel-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: $foreground;
+    }
+
+    .clear-all {
+      padding: 4px 12px;
+      border-radius: 4px;
+      background: rgba($foreground, 0.1);
+      color: $foreground;
+
+      &:hover {
+        background: rgba($foreground, 0.15);
+      }
+    }
+  }
+
+  .panel-scroll {
+    min-height: 200px;
+  }
+
+  .notification-list {
+    padding: 8px;
+  }
+
+  .empty-state {
+    padding: 40px;
+    color: $dim;
+
+    label {
+      font-size: 14px;
+    }
+  }
+
+  .notification-group {
+    margin-bottom: 8px;
+
+    &.collapsed {
+      .group-header {
+        padding: 12px;
+        border-radius: 6px;
+        background: rgba($foreground, 0.05);
+
+        &:hover {
+          background: rgba($foreground, 0.1);
+        }
+
+        image {
+          min-width: 20px;
+          min-height: 20px;
+          margin-right: 8px;
+        }
+
+        .group-count {
+          color: $dim;
+          margin-right: 8px;
+        }
+      }
+    }
+
+    .group-header {
+      padding: 8px 12px;
+      margin-bottom: 4px;
+
+      image {
+        min-width: 16px;
+        min-height: 16px;
+        margin-right: 8px;
+      }
+    }
+  }
+
+  .notification {
+    background: rgba($foreground, 0.05);
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 6px;
+    border-left: 3px solid transparent;
+
+    &.critical {
+      border-left-color: $red;
+    }
+
+    &.normal {
+      border-left-color: $accent;
+    }
+
+    &.low {
+      border-left-color: $dim;
+    }
+
+    .notification-header {
+      margin-bottom: 6px;
+
+      .notification-icon {
+        min-width: 16px;
+        min-height: 16px;
+        margin-right: 8px;
+      }
+
+      .notification-app {
+        font-size: 12px;
+        font-weight: bold;
+        color: $foreground;
+      }
+
+      .notification-time {
+        font-size: 11px;
+        color: $dim;
+      }
+
+      .notification-close {
+        padding: 2px;
+        border-radius: 4px;
+        opacity: 0.5;
+
+        &:hover {
+          opacity: 1;
+          background: rgba($foreground, 0.1);
+        }
+
+        image {
+          min-width: 12px;
+          min-height: 12px;
+        }
+      }
+    }
+
+    .notification-content {
+      .notification-title {
+        font-size: 13px;
+        font-weight: bold;
+        color: $foreground;
+        margin-bottom: 4px;
+      }
+
+      .notification-body {
+        font-size: 12px;
+        color: rgba($foreground, 0.8);
+      }
+    }
+
+    .notification-actions {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba($foreground, 0.1);
+
+      .notification-action {
+        padding: 4px 12px;
+        border-radius: 4px;
+        background: rgba($accent, 0.2);
+        color: $accent;
+        margin-right: 6px;
+
+        &:hover {
+          background: rgba($accent, 0.3);
+        }
+      }
+    }
   }
 }

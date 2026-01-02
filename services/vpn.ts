@@ -84,10 +84,10 @@ class VpnService {
     this._notify()
   }
 
-  async openApp(): Promise<void> {
+  openApp(): void {
     try {
-      const mullvadVpnPath = GLib.getenv("MULLVAD_VPN_PATH") || "/opt/Mullvad VPN/mullvad-vpn"
-      await execAsync([mullvadVpnPath])
+      // Launch without waiting - fire and forget
+      GLib.spawn_command_line_async('"/opt/Mullvad VPN/mullvad-gui"')
     } catch (e) {
       console.error("Failed to open Mullvad:", e)
     }

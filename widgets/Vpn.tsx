@@ -43,26 +43,30 @@ export default function Vpn() {
     unsubscribe()
   })
 
-  // Right-click handler for rotation toggle
-  const clickController = new Gtk.GestureClick()
-  clickController.set_button(0) // Listen to all buttons
-  clickController.connect("pressed", (_self, _n, _x, _y) => {
-    const button = clickController.get_current_button()
-    if (button === Gdk.BUTTON_PRIMARY) {
-      vpn.openApp()
-    } else if (button === Gdk.BUTTON_SECONDARY) {
-      vpn.toggleRotation()
-    }
+  // Click handlers
+  const leftClickController = new Gtk.GestureClick()
+  leftClickController.set_button(Gdk.BUTTON_PRIMARY)
+  leftClickController.connect("pressed", () => {
+    vpn.openApp()
+  })
+
+  const rightClickController = new Gtk.GestureClick()
+  rightClickController.set_button(Gdk.BUTTON_SECONDARY)
+  rightClickController.connect("pressed", () => {
+    vpn.toggleRotation()
   })
 
   return (
-    <button
+    <box
       cssClasses={cssClass((c) => ["vpn", c])}
       tooltipText={tooltip}
       cursor={Gdk.Cursor.new_from_name("pointer", null)}
-      $={(self) => self.add_controller(clickController)}
+      $={(self) => {
+        self.add_controller(leftClickController)
+        self.add_controller(rightClickController)
+      }}
     >
       <image iconName={icon} />
-    </button>
+    </box>
   )
 }

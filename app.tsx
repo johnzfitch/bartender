@@ -2,6 +2,7 @@ import { createBinding, For, This } from "ags"
 import app from "ags/gtk4/app"
 import style from "./styles/style.scss"
 import Bar from "./Bar"
+import NotificationPanel from "./widgets/NotificationPanel"
 
 app.start({
   instanceName: "bartender",
@@ -20,6 +21,7 @@ app.start({
         {(monitor) => (
           <This this={app}>
             <Bar gdkmonitor={monitor} />
+            <NotificationPanel gdkmonitor={monitor} />
           </This>
         )}
       </For>
