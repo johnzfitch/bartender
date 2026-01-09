@@ -1,8 +1,20 @@
 import { createBinding, For, This } from "ags"
 import app from "ags/gtk4/app"
+import Gtk from "gi://Gtk?version=4.0"
 import style from "./styles/style.scss"
 import Bar from "./Bar"
 import NotificationPanel from "./widgets/NotificationPanel"
+
+// Force Adwaita icons - Yaru themes cause GTK4 infinite recursion crash
+const settings = Gtk.Settings.get_default()
+if (settings) {
+  settings.gtk_icon_theme_name = "Adwaita"
+  Object.defineProperty(settings, "gtk_icon_theme_name", {
+    value: "Adwaita",
+    writable: false,
+    configurable: false,
+  })
+}
 
 app.start({
   instanceName: "bartender",
