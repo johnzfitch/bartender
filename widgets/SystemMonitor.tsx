@@ -103,8 +103,8 @@ export default function SystemMonitor() {
   }
 
   const openMonitor = () => {
-    execAsync(["foot", "-e", "btop"]).catch(() => {
-      execAsync(["foot", "-e", "htop"]).catch(console.error)
+    execAsync(["kitty", "-e", "btop"]).catch(() => {
+      execAsync(["kitty", "-e", "htop"]).catch(console.error)
     })
   }
 
@@ -147,7 +147,7 @@ export default function SystemMonitor() {
           </box>
 
           <box cssClasses={["sysmon-detail"]} spacing={8}>
-            <image iconName="sensors-temperature-symbolic" />
+            <image iconName="weather-clear-symbolic" />
             <box orientation={1}>
               <label label="Temperature" xalign={0} cssClasses={["sysmon-label"]} />
               <label

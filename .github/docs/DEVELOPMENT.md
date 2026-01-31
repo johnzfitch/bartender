@@ -130,7 +130,7 @@ function Feed() {
 
 ### FreshRSS
 ```
-GET https://feed.internetuniverse.org/api/greader.php/reader/api/0/stream/contents/reading-list
+GET https://your-freshrss-instance.com/api/greader.php/reader/api/0/stream/contents/reading-list
   ?n=100
   &ot={unix_timestamp_36hrs_ago}
   &output=json
@@ -191,14 +191,14 @@ Headers:
 
 ## File References
 
-Current scripts to port:
-- `/home/zack/dev/waybarfeed/feed-ticker.sh`
-- `/home/zack/dev/waybarfeed/feed-ticker-open.sh`
-- `/home/zack/dev/waybarfeed/mullvad-status.sh`
-- `/home/zack/dev/waybarfeed/mullvad-rotate.sh`
-- `/home/zack/dev/waybarfeed/stealth-proxy-status.sh`
-- `/home/zack/dev/waybarfeed/proxyforge-status.sh`
-- `/home/zack/dev/waybarfeed/audio-output-toggle.sh`
+Original waybar scripts that were ported (for reference):
+- `feed-ticker.sh` - RSS feed display
+- `feed-ticker-open.sh` - URL opener
+- `mullvad-status.sh` - VPN status
+- `mullvad-rotate.sh` - VPN server rotation
+- `stealth-proxy-status.sh` - Proxy status
+- `proxyforge-status.sh` - Debug proxy status
+- `audio-output-toggle.sh` - Audio device toggle
 
 AGS reference:
-- `/home/zack/dev/ags/examples/gtk4/simple-bar/`
+- [AGS GTK4 examples](https://github.com/Aylur/ags/tree/main/examples/gtk4)

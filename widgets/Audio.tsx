@@ -14,8 +14,22 @@ export default function Audio() {
 
   async function refresh(): Promise<void> {
     try {
-      const lineOut = await execAsync(["amixer", "-c", audioCard, "sget", "Line Out"])
-      const headphone = await execAsync(["amixer", "-c", audioCard, "sget", "Headphone"])
+      let lineOut: string
+      let headphone: string
+
+      try {
+        lineOut = await execAsync(["amixer", "-c", audioCard, "sget", "Line Out"])
+      } catch (e) {
+        // Line Out control doesn't exist, assume off
+        lineOut = ""
+      }
+
+      try {
+        headphone = await execAsync(["amixer", "-c", audioCard, "sget", "Headphone"])
+      } catch (e) {
+        // Headphone control doesn't exist, assume off
+        headphone = ""
+      }
 
       const lineOutOn = lineOut.includes("[on]")
       const headphoneOn = headphone.includes("[on]")
@@ -81,16 +95,40 @@ export default function Audio() {
     try {
       switch (newMode) {
         case "speakers":
-          await execAsync(["amixer", "-c", audioCard, "sset", "Line Out", "on"])
-          await execAsync(["amixer", "-c", audioCard, "sset", "Headphone", "off"])
+          try {
+            await execAsync(["amixer", "-c", audioCard, "sset", "Line Out", "on"])
+          } catch (e) {
+            // Ignore if control doesn't exist
+          }
+          try {
+            await execAsync(["amixer", "-c", audioCard, "sset", "Headphone", "off"])
+          } catch (e) {
+            // Ignore if control doesn't exist
+          }
           break
         case "headphones":
-          await execAsync(["amixer", "-c", audioCard, "sset", "Line Out", "off"])
-          await execAsync(["amixer", "-c", audioCard, "sset", "Headphone", "on"])
+          try {
+            await execAsync(["amixer", "-c", audioCard, "sset", "Line Out", "off"])
+          } catch (e) {
+            // Ignore if control doesn't exist
+          }
+          try {
+            await execAsync(["amixer", "-c", audioCard, "sset", "Headphone", "on"])
+          } catch (e) {
+            // Ignore if control doesn't exist
+          }
           break
         case "both":
-          await execAsync(["amixer", "-c", audioCard, "sset", "Line Out", "on"])
-          await execAsync(["amixer", "-c", audioCard, "sset", "Headphone", "on"])
+          try {
+            await execAsync(["amixer", "-c", audioCard, "sset", "Line Out", "on"])
+          } catch (e) {
+            // Ignore if control doesn't exist
+          }
+          try {
+            await execAsync(["amixer", "-c", audioCard, "sset", "Headphone", "on"])
+          } catch (e) {
+            // Ignore if control doesn't exist
+          }
           break
       }
 

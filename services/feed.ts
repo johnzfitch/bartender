@@ -11,7 +11,6 @@ export interface Article {
   weight: number
 }
 
-// FeedService - singleton that manages RSS feed state
 class FeedService {
   private static _instance: FeedService | null = null
 
@@ -25,11 +24,8 @@ class FeedService {
   private _cycleTimer: number | null = null
   private _listeners: Set<() => void> = new Set()
 
-  // Half-life for exponential decay (3 hours in seconds)
   private readonly HALF_LIFE = 3 * 3600
-
-  // Default RSS feed URL
-  private readonly DEFAULT_FEED_URL = "https://feed.internetuniverse.org/i/?a=rss&user=zack&token=abc123111&hours=168"
+  private readonly DEFAULT_FEED_URL = "" // Set RSS_FEED_URL or FRESHRSS_API_URL environment variable
 
   static get_default(): FeedService {
     if (!this._instance) {
@@ -39,8 +35,10 @@ class FeedService {
   }
 
   private constructor() {
+    console.log("[Feed] Service starting...")
     this._startRefreshLoop()
     this._startCycleLoop()
+    console.log("[Feed] Service initialized")
   }
 
   subscribe(callback: () => void): () => void {
@@ -53,52 +51,47 @@ class FeedService {
   }
 
   async refresh(): Promise<void> {
+    console.log("[Feed] refresh() called")
     this.status = "loading"
     this._notify()
 
     try {
-      // Get feed URL from config, env var, or use default
       const config = ConfigService.get_default()
       const configUrl = config.config.widgets?.feed?.url
       const feedUrl = GLib.getenv("RSS_FEED_URL") || configUrl || this.DEFAULT_FEED_URL
+      console.log(`[Feed] Fetching: ${feedUrl}`)
 
-      // Fetch RSS feed
-      const result = await execAsync([
-        "curl",
-        "-s",
-        "-f",
-        "--max-time",
-        "15",
-        feedUrl,
-      ])
+      const result = await execAsync(["curl", "-s", "-f", "--max-time", "15", feedUrl])
+      console.log(`[Feed] Got ${result.length} bytes`)
 
       this.articles = this._parseRss(result)
+      console.log(`[Feed] Parsed ${this.articles.length} articles`)
+
       this.status = "ready"
       this.error = ""
 
       if (!this.current && this.articles.length > 0) {
         this._selectNext()
+        console.log(`[Feed] Selected: ${this.current?.title?.substring(0, 50)}...`)
       }
     } catch (e: any) {
       this.status = "error"
       this.error = e.message || "Failed to fetch feed"
-      console.error("FeedService error:", e)
+      console.error("[Feed] ERROR:", this.error)
     }
 
     this._notify()
+    console.log(`[Feed] Done - status: ${this.status}`)
   }
 
   private _parseRss(xml: string): Article[] {
     const now = Date.now() / 1000
     const articles: Article[] = []
-
-    // Simple XML parsing for RSS items
     const itemRegex = /<item>([\s\S]*?)<\/item>/g
     let match
 
     while ((match = itemRegex.exec(xml)) !== null) {
       const itemXml = match[1]
-
       const title = this._extractTag(itemXml, "title")
       const link = this._extractTag(itemXml, "link")
       const guid = this._extractTag(itemXml, "guid")
@@ -108,7 +101,6 @@ class FeedService {
 
       if (!title || !link) continue
 
-      // Parse date
       let published = now
       if (pubDate) {
         try {
@@ -118,11 +110,8 @@ class FeedService {
         }
       }
 
-      // Calculate weight based on age (newer = higher weight)
       const ageSeconds = now - published
       const weight = Math.exp((-0.693147 * ageSeconds) / this.HALF_LIFE)
-
-      // Use category or creator as source
       const source = category || creator || "Feed"
 
       articles.push({
@@ -139,12 +128,10 @@ class FeedService {
   }
 
   private _extractTag(xml: string, tag: string): string {
-    // Handle CDATA sections
     const cdataRegex = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>`, "i")
     const cdataMatch = xml.match(cdataRegex)
     if (cdataMatch) return cdataMatch[1].trim()
 
-    // Handle regular tags
     const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i")
     const match = xml.match(regex)
     return match ? match[1].trim() : ""
@@ -162,9 +149,7 @@ class FeedService {
 
   private _validateUrl(url: string): string {
     if (!url) return ""
-
     const trimmedUrl = url.trim()
-    // Only allow http:// and https:// URLs
     if (trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://")) {
       return trimmedUrl
     }
@@ -182,7 +167,6 @@ class FeedService {
     }
 
     let pick = Math.random() * totalWeight
-
     for (const article of this.articles) {
       pick -= article.weight
       if (pick <= 0) {
@@ -192,7 +176,6 @@ class FeedService {
       }
     }
 
-    // Fallback
     this.current = this.articles[0]
     this._notify()
   }
@@ -207,16 +190,12 @@ class FeedService {
 
   openCurrent(): void {
     if (this.current?.url) {
-      execAsync(["xdg-open", this.current.url]).catch((e) =>
-        console.error("Failed to open URL:", e)
-      )
+      execAsync(["xdg-open", this.current.url]).catch(console.error)
     }
   }
 
   private _startRefreshLoop(): void {
     this.refresh()
-
-    // Refresh every 5 minutes
     this._refreshTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 5 * 60 * 1000, () => {
       this.refresh()
       return GLib.SOURCE_CONTINUE
@@ -224,7 +203,6 @@ class FeedService {
   }
 
   private _startCycleLoop(): void {
-    // Cycle every 8 seconds (if not paused)
     this._cycleTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 8000, () => {
       if (!this._paused && this.articles.length > 0) {
         this._selectNext()
@@ -234,12 +212,8 @@ class FeedService {
   }
 
   destroy(): void {
-    if (this._refreshTimer) {
-      GLib.source_remove(this._refreshTimer)
-    }
-    if (this._cycleTimer) {
-      GLib.source_remove(this._cycleTimer)
-    }
+    if (this._refreshTimer) GLib.source_remove(this._refreshTimer)
+    if (this._cycleTimer) GLib.source_remove(this._cycleTimer)
   }
 }
 

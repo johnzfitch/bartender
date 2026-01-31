@@ -3,44 +3,38 @@ import { execAsync } from "ags/process"
 import ConfigService from "./config"
 
 export interface WeatherData {
-  temp: string
-  tempF: number
-  tempC: number
+  temp: number
   condition: string
-  weatherCode: number
-  icon: string
-  isRaining: boolean
-  isSnowing: boolean
-  humidity: number
-  windSpeed: string
-  feelsLike: string
+  high: number
+  low: number
+  precip: number
 }
 
-// Weather code ranges
-const RAIN_CODES = [
-  176, 179, 182, 185, // Light rain/drizzle
-  200, 201, 202, 230, 231, 232, // Thunderstorm
-  263, 266, 281, 284, // Drizzle
-  293, 296, 299, 302, 305, 308, 311, 314, // Rain
-  353, 356, 359, // Rain showers
-]
+interface WeatherGovPoint {
+  properties: {
+    forecast: string
+    forecastHourly: string
+    observationStations: string
+  }
+}
 
-const SNOW_CODES = [
-  227, 230, // Blowing snow
-  320, 323, 326, 329, 332, 335, 338, // Snow
-  350, // Ice pellets
-  368, 371, 374, 377, // Snow showers
-  392, 395, // Snow with thunder
-]
+interface WeatherGovStation {
+  properties: {
+    temperature: { value: number }
+    textDescription: string
+    precipitationLastHour: { value: number | null }
+  }
+}
 
-const getWeatherIcon = (code: number): string => {
-  if (code === 113) return "weather-clear-symbolic"
-  if ([116, 119, 122].includes(code)) return "weather-few-clouds-symbolic"
-  if ([143, 248, 260].includes(code)) return "weather-fog-symbolic"
-  if (RAIN_CODES.includes(code)) return "weather-showers-symbolic"
-  if (SNOW_CODES.includes(code)) return "weather-snow-symbolic"
-  if ([200, 386, 389].includes(code)) return "weather-storm-symbolic"
-  return "weather-overcast-symbolic"
+interface WeatherGovForecast {
+  properties: {
+    periods: Array<{
+      temperature: number
+      shortForecast: string
+      name: string
+      isDaytime: boolean
+    }>
+  }
 }
 
 class WeatherService {
@@ -52,8 +46,6 @@ class WeatherService {
 
   private _listeners: Set<() => void> = new Set()
   private _refreshTimer: number | null = null
-  private _retryCount: number = 0
-  private _maxRetries: number = 3
 
   static get_default(): WeatherService {
     if (!this._instance) {
@@ -63,7 +55,9 @@ class WeatherService {
   }
 
   private constructor() {
+    console.log("[Weather] Service starting...")
     this._startRefreshLoop()
+    console.log("[Weather] Service initialized")
   }
 
   subscribe(callback: () => void): () => void {
@@ -76,90 +70,90 @@ class WeatherService {
   }
 
   async refresh(): Promise<void> {
+    console.log("[Weather] refresh() called")
     this.loading = true
     this._notify()
 
     try {
-      // Get location from config, env var, or use auto
-      const config = ConfigService.get_default()
-      const configLocation = config.config.widgets?.weather?.location
-      const location = GLib.getenv("WEATHER_LOCATION") || configLocation || ""
-      const url = `https://wttr.in/${location}?format=j1`
+      const lat = 38.4404
+      const lon = -122.7141
 
-      const result = await execAsync([
-        "curl",
-        "-s",
-        "-f",
-        "--max-time",
-        "10",
-        url,
-      ])
+      // Get grid point data
+      const pointUrl = `https://api.weather.gov/points/${lat},${lon}`
+      console.log(`[Weather] Fetching: ${pointUrl}`)
+      const pointData = await this._fetchJson<WeatherGovPoint>(pointUrl)
+      console.log("[Weather] Got point data")
 
-      const json = JSON.parse(result)
-      const current = json.current_condition?.[0]
+      // Get observation station
+      const stationsUrl = pointData.properties.observationStations
+      const stationsData = await this._fetchJson<{ features: Array<{ id: string }> }>(stationsUrl)
+      const stationId = stationsData.features[0].id
+      console.log(`[Weather] Station: ${stationId}`)
 
-      if (!current) {
-        throw new Error("Invalid weather data")
-      }
+      // Get current conditions
+      const obsUrl = `${stationId}/observations/latest`
+      const obsData = await this._fetchJson<WeatherGovStation>(obsUrl)
+      console.log("[Weather] Got observations")
 
-      const weatherCode = parseInt(current.weatherCode, 10)
+      // Get forecast for high/low
+      const forecastUrl = pointData.properties.forecast
+      const forecastData = await this._fetchJson<WeatherGovForecast>(forecastUrl)
+      console.log("[Weather] Got forecast")
+
+      // Find first daytime (high) and nighttime (low) periods
+      const periods = forecastData.properties.periods
+      const dayPeriod = periods.find(p => p.isDaytime)
+      const nightPeriod = periods.find(p => !p.isDaytime)
+
+      // Convert Celsius to Fahrenheit
+      const tempC = obsData.properties.temperature.value
+      const tempF = tempC != null ? Math.round((tempC * 9/5) + 32) : 0
 
       this.data = {
-        temp: `${current.temp_F}°F`,
-        tempF: parseInt(current.temp_F, 10),
-        tempC: parseInt(current.temp_C, 10),
-        condition: current.weatherDesc?.[0]?.value || "Unknown",
-        weatherCode,
-        icon: getWeatherIcon(weatherCode),
-        isRaining: RAIN_CODES.includes(weatherCode),
-        isSnowing: SNOW_CODES.includes(weatherCode),
-        humidity: parseInt(current.humidity, 10),
-        windSpeed: `${current.windspeedMiles} mph`,
-        feelsLike: `${current.FeelsLikeF}°F`,
+        temp: tempF,
+        condition: obsData.properties.textDescription || periods[0]?.shortForecast || "Unknown",
+        high: dayPeriod?.temperature ?? 0,
+        low: nightPeriod?.temperature ?? 0,
+        precip: obsData.properties.precipitationLastHour?.value || 0,
       }
 
       this.error = null
-      this._retryCount = 0
       this.loading = false
       this._notify()
+      console.log(`[Weather] Success: ${this.data.temp}°F ${this.data.condition}`)
     } catch (e: any) {
-      this.error = e.message || "Failed to fetch weather"
+      const errorMsg = e.message || String(e) || "Unknown error"
+      console.error(`[Weather] ERROR: ${errorMsg}`)
+      this.error = errorMsg
       this.loading = false
-      this._retryCount++
-
-      console.error("WeatherService error:", e.message || e)
-
-      // Exponential backoff: 10min, 20min, 40min
-      if (this._retryCount <= this._maxRetries) {
-        const retryDelay = 10 * 60 * 1000 * Math.pow(2, this._retryCount - 1)
-        GLib.timeout_add(GLib.PRIORITY_DEFAULT, retryDelay, () => {
-          this.refresh()
-          return GLib.SOURCE_REMOVE
-        })
-      }
-
       this._notify()
     }
   }
 
+  private async _fetchJson<T>(url: string): Promise<T> {
+    const result = await execAsync([
+      "curl", "-sL", "--max-time", "10",
+      "-H", "User-Agent: bartender/1.0",
+      url
+    ])
+
+    if (!result || result.trim().length === 0) {
+      throw new Error(`Empty response from ${url}`)
+    }
+
+    return JSON.parse(result)
+  }
+
   manualRefresh(): void {
-    this._retryCount = 0
     this.refresh()
   }
 
   private _startRefreshLoop(): void {
-    // Initial fetch
     this.refresh()
-
-    // Refresh every 10 minutes
-    this._refreshTimer = GLib.timeout_add(
-      GLib.PRIORITY_DEFAULT,
-      10 * 60 * 1000,
-      () => {
-        this.refresh()
-        return GLib.SOURCE_CONTINUE
-      }
-    )
+    this._refreshTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 15 * 60 * 1000, () => {
+      this.refresh()
+      return GLib.SOURCE_CONTINUE
+    })
   }
 
   destroy(): void {

@@ -82,9 +82,13 @@
           pkgs.fontconfig
         ];
         # Ensure system fonts are accessible
+        # Force Adwaita icons - Yaru-magenta causes GTK4 infinite recursion crash
         shellHook = ''
           export FONTCONFIG_FILE=${pkgs.fontconfig.out}/etc/fonts/fonts.conf
           export XDG_DATA_DIRS="$HOME/.local/share:$XDG_DATA_DIRS"
+          export GTK_ICON_THEME=Adwaita
+          # Export PATH for child processes (ags execAsync needs curl)
+          export PATH="${pkgs.curl}/bin:$PATH"
         '';
       };
     };

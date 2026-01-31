@@ -6,7 +6,6 @@ import FeedService from "../services/feed"
 export default function Feed() {
   const feed = FeedService.get_default()
 
-  // Local state that re-renders on feed changes
   const [displayText, setDisplayText] = createState(getDisplayText())
   const [statusClass, setStatusClass] = createState(getStatusClass())
 
@@ -23,7 +22,6 @@ export default function Feed() {
     return "ready"
   }
 
-  // Subscribe to feed changes
   const unsubscribe = feed.subscribe(() => {
     setDisplayText(getDisplayText())
     setStatusClass(getStatusClass())
@@ -47,7 +45,7 @@ export default function Feed() {
     >
       <label
         label={displayText}
-        ellipsize={3} // PANGO_ELLIPSIZE_END
+        ellipsize={3}
         maxWidthChars={150}
       />
     </button>

@@ -32,8 +32,8 @@ class ProxyForgeService {
 
   async refresh(): Promise<void> {
     try {
-      // Check if mitmdump is running on port 8888
-      await execAsync(["pgrep", "-f", "mitmdump.*8888"])
+      // Check if mitmdump is running in local mode (eBPF transparent)
+      await execAsync(["pgrep", "-f", "mitmdump.*local:"])
       this.status = "active"
     } catch {
       // Check if flag file exists (starting/stopping state)
@@ -49,32 +49,40 @@ class ProxyForgeService {
 
   async toggle(): Promise<void> {
     const flagFile = GLib.get_home_dir() + "/.cache/proxyforge-enabled"
-    const proxyForgeBin = GLib.getenv("PROXYFORGE_BIN_PATH") || GLib.get_home_dir() + "/.local/bin/proxyforge"
+    const proxyForgePath = GLib.get_home_dir() + "/dev/proxyforge/proxyforge.py"
+    // Default targets: claude (CLI), claude- (Desktop), codex, node (for various tools)
+    const localTargets = GLib.getenv("PROXYFORGE_TARGETS") || "claude,codex,node"
 
     if (this.status === "active" || this.status === "starting") {
-      // Stop proxy
+      // Stop proxy - kill the mitmproxy process
       this.status = "stopping"
       this._notify()
 
       try {
-        await execAsync(["pkill", "-f", "mitmdump.*8888"])
+        // Kill mitmproxy local mode process
+        await execAsync(["pkill", "-f", "mitmdump.*local:"])
         // Remove flag file
         await execAsync(["rm", "-f", flagFile])
-        await this._sendNotification("ProxyForge", "Proxy stopped")
+        await this._sendNotification("ProxyForge", "eBPF interception stopped")
       } catch (e) {
         console.error("Failed to stop proxy:", e)
       }
     } else {
-      // Start proxy
+      // Start proxy in eBPF local mode (transparent interception)
       this.status = "starting"
       this._notify()
 
       try {
         // Create flag file
         await execAsync(["touch", flagFile])
-        // Start proxyforge
-        await execAsync([proxyForgeBin])
-        await this._sendNotification("ProxyForge", "Proxy started")
+        // Start proxyforge in eBPF local mode (requires pkexec for sudo)
+        await execAsync([
+          "pkexec",
+          "python3",
+          proxyForgePath,
+          "--mode", `local:${localTargets}`
+        ])
+        await this._sendNotification("ProxyForge", `eBPF intercepting: ${localTargets}`)
       } catch (e) {
         console.error("Failed to start proxy:", e)
       }

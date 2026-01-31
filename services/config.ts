@@ -27,7 +27,7 @@ const DEFAULT_CONFIG: Config = {
   layout: {
     left: ["workspaces"],
     center: ["feed"],
-    right: ["tray", "audio", "volume", "proxyforge", "vpn", "clock"],
+    right: ["tray", "audio", "volume", "sysmon", "comfyui", "proxyforge", "vpn", "clock"],
   },
   widgets: {
     workspaces: { enabled: true },
@@ -35,12 +35,14 @@ const DEFAULT_CONFIG: Config = {
     tray: { enabled: true },
     audio: { enabled: true, card: 3 },
     volume: { enabled: true },
+    comfyui: { enabled: true },
     proxyforge: { enabled: true },
     vpn: { enabled: true },
     clock: { enabled: true, format: "%a %b %d %l:%M %p" },
-    weather: { enabled: false, location: "auto", units: "imperial" },
-    wifi: { enabled: false },
-    bluetooth: { enabled: false },
+    weather: { enabled: true, location: "auto", units: "imperial" },
+    wifi: { enabled: true },
+    bluetooth: { enabled: true },
+    sysmon: { enabled: true },
   },
   notifications: {
     monitor: "primary",

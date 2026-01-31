@@ -1,2 +1,26 @@
+# Build outputs
 result
+result-*
+/bartender
+
+# Environment (contains secrets)
 .env
+
+# Ghidra/analysis artifacts
+pyghidra_mcp_projects/
+*.gpr
+*.rep/
+chromadb/
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# Build artifacts
+*.backup
+
+# OS files
+.DS_Store
+Thumbs.db

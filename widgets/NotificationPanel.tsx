@@ -75,8 +75,11 @@ function NotificationItem({ notification }: { notification: AstalNotifd.Notifica
       {notification.actions.length > 0 && (
         <box cssClasses={["notification-actions"]}>
           {notification.actions.map((action) => (
-            <button cssClasses={["notification-action"]} onClicked={() => notification.invoke(action.id)}>
-              <label label={action.label} />
+            <button
+              cssClasses={["notification-action"]}
+              onClicked={() => notification.invoke(action.id)}
+            >
+              <label label={String(action.label || action.id)} />
             </button>
           ))}
         </box>
@@ -155,6 +158,8 @@ export default function NotificationPanel({ gdkmonitor }: { gdkmonitor: Gdk.Moni
   }
 
   const clearAll = () => {
+    // Safety check for GObject accessor
+    if (!notifd.notifications) return
     for (const n of notifd.notifications) {
       n.dismiss()
     }
@@ -195,7 +200,8 @@ export default function NotificationPanel({ gdkmonitor }: { gdkmonitor: Gdk.Moni
         <Gtk.ScrolledWindow cssClasses={["panel-scroll"]} vexpand>
           <box orientation={1} cssClasses={["notification-list"]}>
             {notifications.as((notifs) => {
-              if (notifs.length === 0) {
+              // Safety check for null/undefined from GObject accessor
+              if (!notifs || !Array.isArray(notifs) || notifs.length === 0) {
                 return (
                   <box cssClasses={["empty-state"]} hexpand vexpand>
                     <label label="No notifications" />

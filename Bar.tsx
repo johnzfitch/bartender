@@ -17,10 +17,12 @@ import Feed from "./widgets/Feed"
 import Vpn from "./widgets/Vpn"
 import ProxyForge from "./widgets/ProxyForge"
 import Audio from "./widgets/Audio"
+import SystemMonitor from "./widgets/SystemMonitor"
+import Weather from "./widgets/Weather"
 import Wifi from "./widgets/Wifi"
 import Bluetooth from "./widgets/Bluetooth"
-import Weather from "./widgets/Weather"
 import AudioMixer from "./widgets/AudioMixer"
+import ComfyUI from "./widgets/ComfyUI"
 
 function WorkspaceButton({ id, hyprland }: { id: number; hyprland: AstalHyprland.Hyprland }) {
   const [classes, setClasses] = createState<string[]>(getClasses())
@@ -37,8 +39,14 @@ function WorkspaceButton({ id, hyprland }: { id: number; hyprland: AstalHyprland
 
   // Subscribe to both workspace and focus changes
   const update = () => setClasses(getClasses())
-  hyprland.connect("notify::focused-workspace", update)
-  hyprland.connect("notify::workspaces", update)
+  const focusId = hyprland.connect("notify::focused-workspace", update)
+  const workspacesId = hyprland.connect("notify::workspaces", update)
+
+  // Disconnect signal handlers on cleanup
+  onCleanup(() => {
+    hyprland.disconnect(focusId)
+    hyprland.disconnect(workspacesId)
+  })
 
   return (
     <button
@@ -69,6 +77,12 @@ const TRAY_ICON_OVERRIDES: Record<string, string> = {
   kgpg: "security-high-symbolic",
 }
 
+// Hide these tray items (we have custom widgets for them)
+const TRAY_HIDDEN = new Set([
+  "mullvad-vpn",
+  "Mullvad VPN",
+])
+
 export function Tray() {
   const tray = AstalTray.get_default()
   const items = createBinding(tray, "items")
@@ -76,8 +90,13 @@ export function Tray() {
   const init = (btn: Gtk.MenuButton, item: AstalTray.TrayItem) => {
     btn.menuModel = item.menuModel
     btn.insert_action_group("dbusmenu", item.actionGroup)
-    item.connect("notify::action-group", () => {
+    const actionGroupId = item.connect("notify::action-group", () => {
       btn.insert_action_group("dbusmenu", item.actionGroup)
+    })
+
+    // Disconnect on button destroy
+    btn.connect("destroy", () => {
+      item.disconnect(actionGroupId)
     })
   }
 
@@ -98,6 +117,9 @@ export function Tray() {
     <box cssClasses={["tray"]}>
       <For each={items}>
         {(item) => {
+          // Skip hidden items (we have custom widgets for them)
+          if (TRAY_HIDDEN.has(item.id) || TRAY_HIDDEN.has(item.title)) return <box />
+
           // Skip items with no usable icon
           const hasIcon = item.gicon !== null || (item.iconName && item.iconName.length > 0) || TRAY_ICON_OVERRIDES[item.id]
           if (!hasIcon) return <box />
@@ -168,10 +190,12 @@ const WIDGET_MAP: Record<string, WidgetComponent> = {
   vpn: Vpn,
   proxyforge: ProxyForge,
   audio: Audio,
+  sysmon: SystemMonitor,
+  weather: Weather,
   wifi: Wifi,
   bluetooth: Bluetooth,
-  weather: Weather,
   audiomixer: AudioMixer,
+  comfyui: ComfyUI,
 }
 
 // Renders a widget by name if it's enabled in config

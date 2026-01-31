@@ -63,6 +63,11 @@ const widgetRegistry: Record<string, () => Promise<WidgetFactory>> = {
     const Weather = (await import("../widgets/Weather")).default
     return () => <Weather />
   },
+
+  sysmon: async () => {
+    const SystemMonitor = (await import("../widgets/SystemMonitor")).default
+    return () => <SystemMonitor />
+  },
 }
 
 // Cache for loaded widget factories

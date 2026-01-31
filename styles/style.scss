@@ -6,39 +6,46 @@
   @return string.unquote("alpha(#{$c},#{$a})");
 }
 
-$background: #1a1b26;
-$foreground: #c0caf5;
+// Lumon Theme - Severance inspired colors
+$background: #0d1a1f;
+$foreground: #6ef3ed;
 $dim: rgba($foreground, 0.35);
-$accent: #7aa2f7;
-$green: #9ece6a;
-$yellow: #e0af68;
-$red: #f7768e;
+$accent: #5dd9d3;
+$bright-accent: #7ffff8;
+$green: #5dd9d3;
+$yellow: #7ffff8;
+$red: #ff6b9d;
 
 window.bartender {
-  background: transparent;
-  font-family: "IBM Plex Sans", "SF Pro Display", "Fira Sans", "Berkeley Mono", sans-serif;
+  background: rgba(0, 0, 0, 0);
+  font-family: "Berkeley Mono", "IBM Plex Mono", monospace;
   font-size: 14px;
   color: $foreground;
-  // Shadow casts onto desktop below the bar
-  box-shadow: 0 6px 20px 4px rgba(0, 0, 0, 0.5);
+  // Lumon CRT glow effect
+  text-shadow: 0 0 3px gtkalpha($accent, 0.3);
 
   > box {
-    background: gtkalpha($background, 0.85);
+    background: gtkalpha($background, 0.90);
     padding: 0 8px;
-    // Inner shadow for depth
-    box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+    border-bottom: 2px solid gtkalpha($accent, 0.5);
+    // CRT glow effect - cyan drop shadow beneath the bar
+    box-shadow:
+      0 3px 15px gtkalpha($accent, 0.4),
+      0 6px 30px gtkalpha($accent, 0.2),
+      0 10px 50px gtkalpha($accent, 0.1);
   }
 
-  // Strip ALL button chrome
+  // Strip button chrome
   button,
   menubutton > button {
-    all: unset;
+    background: rgba(0, 0, 0, 0);
+    border-width: 0px;
     padding: 8px 10px;
-    transition: color 100ms ease;
   }
 
   menubutton {
-    all: unset;
+    background: rgba(0, 0, 0, 0);
+    border-width: 0px;
   }
 
   // Popover keeps some structure
@@ -53,22 +60,25 @@ window.bartender {
   // Workspaces - always 1-5, visual states like waybar
   .workspaces {
     .ws {
-      padding: 8px 10px;
+      padding: 4px 8px;
+      margin: 2px 2px;
       font-size: 14px;
-      font-weight: normal;
-      color: rgba($foreground, 0.4); // empty - more visible
+      font-weight: 400;
+      color: rgba($foreground, 0.35);
+      border-radius: 6px;
 
       &.occupied {
-        color: rgba($foreground, 0.75);
+        color: rgba($foreground, 0.6);
       }
 
       &.focused {
         color: $foreground;
-        font-weight: bold;
+        background: rgba($foreground, 0.08);
       }
 
       &:hover {
         color: $accent;
+        background: rgba($accent, 0.08);
       }
     }
   }
@@ -88,8 +98,8 @@ window.bartender {
   // Feed ticker
   .feed-ticker {
     padding: 8px 16px;
-    font-size: 14px;
-    font-weight: bold;
+    font-size: 15px;
+    font-weight: 700;
     color: $foreground;
 
     &.loading {
@@ -101,7 +111,7 @@ window.bartender {
     }
 
     label {
-      font-weight: normal;
+      font-weight: 400;
     }
 
     &:hover label {
@@ -156,16 +166,16 @@ window.bartender {
 
       slider {
         background: $foreground;
-        border-radius: 50%;
+        border-radius: 6px;
         min-width: 12px;
         min-height: 12px;
-        margin: -3px;
+        margin: 0px;
       }
     }
   }
 
   // Status widgets - consistent spacing and colors
-  .vpn, .proxyforge, .audio {
+  .vpn, .proxyforge, .audio, .comfyui {
     padding: 8px 10px;
   }
 
@@ -180,6 +190,17 @@ window.bartender {
     &.proxyforge-starting,
     &.proxyforge-stopping { color: $yellow; }
     &.proxyforge-off { color: $dim; }
+  }
+
+  .comfyui {
+    &.comfyui-running { color: $green; }
+    &.comfyui-starting,
+    &.comfyui-stopping { color: $yellow; }
+    &.comfyui-stopped { color: $dim; }
+
+    label {
+      font-size: 12px;
+    }
   }
 
   .audio {
@@ -206,48 +227,14 @@ window.bartender {
     }
 
     &.unavailable {
-      opacity: 0;
-      min-width: 0;
-      min-height: 0;
-      padding: 0;
-      margin: 0;
+      min-width: 0px;
+      min-height: 0px;
+      padding: 0px;
+      margin: 0px;
     }
   }
 
-  .wifi-popover {
-    min-width: 250pt;
-
-    .wifi-header {
-      padding: 4px 8px;
-      margin-bottom: 8px;
-      border-bottom: 1px solid rgba($foreground, 0.1);
-
-      label {
-        font-weight: bold;
-      }
-    }
-
-    .wifi-list {
-      .wifi-ap {
-        padding: 6px 8px;
-        border-radius: 4px;
-
-        &:hover {
-          background: rgba($foreground, 0.1);
-        }
-
-        &.active {
-          color: $green;
-        }
-
-        image {
-          min-width: 16px;
-          min-height: 16px;
-          margin-right: 8px;
-        }
-      }
-    }
-  }
+  // wifi-popover styles removed - GTK4 CSS compatibility
 
   // Bluetooth widget
   .bluetooth {
@@ -270,16 +257,14 @@ window.bartender {
     }
 
     &.unavailable {
-      opacity: 0;
-      min-width: 0;
-      min-height: 0;
-      padding: 0;
-      margin: 0;
+      min-width: 0px;
+      min-height: 0px;
+      padding: 0px;
+      margin: 0px;
     }
   }
 
   .bluetooth-popover {
-    min-width: 250px;
 
     .bluetooth-header {
       padding: 4px 8px;
@@ -287,11 +272,12 @@ window.bartender {
       border-bottom: 1px solid rgba($foreground, 0.1);
 
       label {
-        font-weight: bold;
+        font-weight: 700;
       }
 
       switch {
-        margin-left: auto;
+        // GTK4 CSS doesn't support margin-left: auto
+        // Layout alignment should be handled in the widget code with halign
       }
     }
 
@@ -334,17 +320,80 @@ window.bartender {
     }
 
     &.unavailable {
-      opacity: 0;
-      min-width: 0;
-      min-height: 0;
-      padding: 0;
-      margin: 0;
+      min-width: 0px;
+      min-height: 0px;
+      padding: 0px;
+      margin: 0px;
     }
   }
 
   .mixer-popover {
-    min-width: 300px;
     padding: 8px;
+    min-width: 280px;
+
+    .mixer-devices {
+      margin-bottom: 4px;
+
+      .device-btn {
+        padding: 6px 10px;
+        border-radius: 4px;
+        margin-bottom: 2px;
+        background: transparent;
+
+        &:hover {
+          background: rgba($foreground, 0.08);
+        }
+
+        &.active {
+          background: rgba($accent, 0.15);
+          color: $accent;
+        }
+
+        image {
+          min-width: 14px;
+          min-height: 14px;
+          margin-right: 8px;
+        }
+
+        label {
+          font-size: 12px;
+        }
+      }
+    }
+
+    .mixer-jacks {
+      margin-bottom: 4px;
+
+      > box {
+        // Horizontal button row
+      }
+
+      .jack-btn {
+        padding: 6px 12px;
+        border-radius: 4px;
+        margin-right: 4px;
+        background: rgba($foreground, 0.08);
+
+        &:hover {
+          background: rgba($foreground, 0.15);
+        }
+
+        &.active {
+          background: rgba($accent, 0.2);
+          color: $accent;
+        }
+
+        image {
+          min-width: 16px;
+          min-height: 16px;
+          margin-right: 6px;
+        }
+
+        label {
+          font-size: 11px;
+        }
+      }
+    }
 
     .mixer-master {
       padding: 8px;
@@ -376,10 +425,10 @@ window.bartender {
 
         slider {
           background: $foreground;
-          border-radius: 50%;
+          border-radius: 6px;
           min-width: 12px;
           min-height: 12px;
-          margin: -3px;
+          margin: 0px;
         }
       }
     }
@@ -400,6 +449,7 @@ window.bartender {
       .mixer-app {
         padding: 6px 8px;
         border-radius: 4px;
+        margin-bottom: 4px;
 
         &:hover {
           background: rgba($foreground, 0.05);
@@ -451,10 +501,41 @@ window.bartender {
 
           slider {
             background: $foreground;
-            border-radius: 50%;
+            border-radius: 6px;
             min-width: 10px;
             min-height: 10px;
-            margin: -3px;
+            margin: 0px;
+          }
+        }
+
+        .mixer-app-route {
+          margin-top: 4px;
+          padding-left: 24px;
+
+          image {
+            min-width: 12px;
+            min-height: 12px;
+            margin-right: 6px;
+            color: $dim;
+          }
+
+          .route-btn {
+            padding: 2px 8px;
+            border-radius: 3px;
+            margin-right: 4px;
+            font-size: 11px;
+            background: rgba($foreground, 0.08);
+            color: $dim;
+
+            &:hover {
+              background: rgba($foreground, 0.15);
+              color: $foreground;
+            }
+
+            &.active {
+              background: rgba($accent, 0.2);
+              color: $accent;
+            }
           }
         }
       }
@@ -463,6 +544,49 @@ window.bartender {
 
   // Weather widget
   .weather {
+    padding: 8px 12px;
+    color: $foreground;
+
+    &:hover {
+      color: $accent;
+    }
+
+    &.error {
+      color: $red;
+    }
+
+    .weather-condition {
+      font-size: 14px;
+    }
+
+    .weather-temp {
+      font-size: 14px;
+    }
+
+    .weather-hilo {
+      font-size: 14px;
+      color: $dim;
+
+      image {
+        min-width: 12px;
+        min-height: 12px;
+      }
+    }
+
+    .weather-precip {
+      font-size: 14px;
+      color: $accent;
+
+      image {
+        min-width: 12px;
+        min-height: 12px;
+      }
+    }
+  }
+
+
+  // System Monitor widget
+  .sysmon {
     > button {
       padding: 8px 10px;
       color: $foreground;
@@ -472,56 +596,70 @@ window.bartender {
       }
     }
 
-    &.loading {
-      color: $dim;
-    }
+    .sysmon-stat {
+      &.normal { color: $foreground; }
+      &.medium { color: $yellow; }
+      &.high { color: $yellow; }
+      &.critical { color: $red; }
 
-    &.error {
-      color: $red;
-    }
-
-    &.rainy {
-      color: $accent;
-    }
-
-    &.snowy {
-      color: $foreground;
-    }
-
-    .weather-content {
-      // GTK overlay positioning is handled by the widget itself
-    }
-
-    .weather-particles {
-      // DrawingArea overlay - positioned via GTK layout
-      opacity: 0.8;
-    }
-
-    .weather-info {
       image {
-        min-width: 18px;
-        min-height: 18px;
-        margin-right: 6px;
+        min-width: 14px;
+        min-height: 14px;
+      }
+
+      label {
+        font-size: 12px;
+        font-weight: 700;
+        min-width: 32px;
       }
     }
   }
 
-  .weather-popover {
-    padding: 6px 10px;
+  .sysmon-popover {
+    padding: 8px;
 
-    .weather-condition {
-      font-size: 12px;
-      color: $foreground;
-      margin-bottom: 4px;
+    .sysmon-header {
+      padding: 4px 8px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba($foreground, 0.1);
+
+      label {
+        font-weight: 700;
+      }
     }
 
-    .weather-details {
-      font-size: 11px;
-      color: $dim;
+    .sysmon-detail {
+      padding: 6px 8px;
 
-      .weather-sep {
-        margin: 0 6px;
-        color: rgba($foreground, 0.3);
+      image {
+        min-width: 18px;
+        min-height: 18px;
+      }
+
+      .sysmon-label {
+        font-size: 11px;
+        color: $dim;
+      }
+
+      .sysmon-value {
+        font-size: 13px;
+        font-weight: 700;
+      }
+    }
+
+    .sysmon-divider {
+      background: rgba($foreground, 0.1);
+      min-height: 1px;
+      margin: 4px 0;
+    }
+
+    .sysmon-open {
+      padding: 6px 12px;
+      border-radius: 4px;
+      background: rgba($foreground, 0.1);
+
+      &:hover {
+        background: rgba($foreground, 0.15);
       }
     }
   }
@@ -534,7 +672,7 @@ window.bartender {
 
 // Notification Panel - separate window
 window.notification-panel {
-  background: transparent;
+  background: rgba(0, 0, 0, 0);
   font-family: "IBM Plex Sans", "SF Pro Display", "Fira Sans", "Berkeley Mono", sans-serif;
   font-size: 14px;
   color: $foreground;
@@ -543,7 +681,6 @@ window.notification-panel {
     background: string.unquote("alpha(#{$background}, 0.95)");
     border-radius: 8px;
     border: 1px solid rgba($foreground, 0.1);
-    min-width: 380px;
   }
 
   .panel-header {
@@ -552,7 +689,7 @@ window.notification-panel {
 
     .panel-title {
       font-size: 16px;
-      font-weight: bold;
+      font-weight: 700;
       color: $foreground;
     }
 
@@ -628,7 +765,7 @@ window.notification-panel {
     border-radius: 6px;
     padding: 10px;
     margin-bottom: 6px;
-    border-left: 3px solid transparent;
+    border-left: 3px solid rgba(0, 0, 0, 0);
 
     &.critical {
       border-left-color: $red;
@@ -653,7 +790,7 @@ window.notification-panel {
 
       .notification-app {
         font-size: 12px;
-        font-weight: bold;
+        font-weight: 700;
         color: $foreground;
       }
 
@@ -682,7 +819,7 @@ window.notification-panel {
     .notification-content {
       .notification-title {
         font-size: 13px;
-        font-weight: bold;
+        font-weight: 700;
         color: $foreground;
         margin-bottom: 4px;
       }
