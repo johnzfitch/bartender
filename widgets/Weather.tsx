@@ -15,7 +15,7 @@ export default function Weather() {
   }
 
   const openForecast = () => {
-    const loc = config.config.widgets?.weather?.location || ""
+    const loc = config.config.weather.location || ""
     execAsync(["xdg-open", `https://wttr.in/${loc}`]).catch(console.error)
   }
 

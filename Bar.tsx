@@ -159,8 +159,7 @@ export function Volume() {
 
 export function Clock() {
   const config = ConfigService.get_default()
-  const widgetConfig = config.getWidgetConfig<{ format?: string }>("clock")
-  const format = widgetConfig?.format || "%a %b %d %l:%M %p"
+  const format = config.config.clock.format || "%a %b %d %l:%M %p"
 
   const time = createPoll("", 1000, () => {
     return GLib.DateTime.new_now_local().format(format)!

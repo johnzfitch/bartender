@@ -1,6 +1,8 @@
+import GLib from "gi://GLib"
 import Gtk from "gi://Gtk?version=4.0"
 import Gdk from "gi://Gdk?version=4.0"
 import { createState, onCleanup } from "ags"
+import { execAsync } from "ags/process"
 import FeedService from "../services/feed"
 
 export default function Feed() {
@@ -11,7 +13,13 @@ export default function Feed() {
 
   function getDisplayText(): string {
     if (feed.status === "loading") return "Loading feed..."
-    if (feed.status === "error") return `Feed error: ${feed.error}`
+    if (feed.status === "error") {
+      // Shorter message for display, full path shown on click
+      if (feed.error.includes("No feed URL")) {
+        return "Click to configure feed URL"
+      }
+      return `Feed error: ${feed.error}`
+    }
     if (!feed.current) return "No articles"
     return `${feed.current.source} | ${feed.current.title}`
   }
@@ -20,6 +28,17 @@ export default function Feed() {
     if (feed.status === "loading") return "loading"
     if (feed.status === "error") return "error"
     return "ready"
+  }
+
+  function handleClick(): void {
+    // If no feed URL configured, open the config file
+    if (feed.status === "error" && feed.error.includes("No feed URL")) {
+      const configPath = `${GLib.get_home_dir()}/.config/bartender/config.toml`
+      execAsync(["xdg-open", configPath]).catch(console.error)
+      return
+    }
+    // Otherwise open the current article
+    feed.openCurrent()
   }
 
   const unsubscribe = feed.subscribe(() => {
@@ -39,7 +58,7 @@ export default function Feed() {
   return (
     <button
       cssClasses={statusClass((c) => ["feed-ticker", c])}
-      onClicked={() => feed.openCurrent()}
+      onClicked={handleClick}
       cursor={Gdk.Cursor.new_from_name("pointer", null)}
       $={(self) => self.add_controller(hoverController)}
     >

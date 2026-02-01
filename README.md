@@ -45,17 +45,11 @@ yay -S bartender-git
 After installation, set up your configuration:
 
 ```bash
-# Create config directory
-mkdir -p ~/.config/bartender
-
-# Create your environment file (see Environment Variables below)
-nano ~/.config/bartender/.env
-
-# Protect credentials
-chmod 600 ~/.config/bartender/.env
-
-# Enable and start the service
+# Enable and start the service (creates default config automatically)
 systemctl --user enable --now bartender.service
+
+# Edit config to add your RSS feed URL
+nano ~/.config/bartender/config.toml
 ```
 
 The bartender service will automatically stop waybar and mako when started. See [MIGRATION.md](MIGRATION.md) for detailed migration instructions.
@@ -144,46 +138,75 @@ bartender/
 └── README.md                 # This file
 ```
 
-## Environment Variables
+## Configuration
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `FRESHRSS_API_URL` | FreshRSS API endpoint URL | *(required)* |
-| `FRESHRSS_AUTH_TOKEN` | Auth token for FreshRSS API | *(required)* |
-| `AUDIO_CARD` | ALSA audio card number | `3` |
-| `PROXYFORGE_BIN_PATH` | Path to proxyforge binary | `~/.local/bin/proxyforge` |
-| `MULLVAD_VPN_PATH` | Path to Mullvad VPN application | `/opt/Mullvad VPN/mullvad-vpn` |
+Bartender uses a single `config.toml` file for all settings. A default config is created automatically on first run.
 
-### Setting Up Environment Variables
+### Quick Setup
 
-1. Copy the example environment file:
-   ```bash
-   cp .env.example ~/.config/bartender/.env
-   ```
+```bash
+# Config is auto-created at ~/.config/bartender/config.toml
+# Edit it to add your RSS feed URL:
+nano ~/.config/bartender/config.toml
+```
 
-2. Edit with your actual values:
-   ```bash
-   # FreshRSS API Configuration
-   FRESHRSS_API_URL=https://your-freshrss-instance.com/api/greader.php/reader/api/0/stream/contents/reading-list
-   FRESHRSS_AUTH_TOKEN=your_auth_token_here
+### Configuration Options
 
-   # Audio Configuration (optional - defaults to 3)
-   AUDIO_CARD=3
+```toml
+[layout]
+left = ["workspaces", "weather"]
+center = ["feed"]
+right = ["tray", "bluetooth", "wifi", "audiomixer", "sysmon", "vpn", "clock"]
 
-   # ProxyForge Configuration (optional)
-   PROXYFORGE_BIN_PATH=~/.local/bin/proxyforge
+[feed]
+# Any RSS/Atom feed URL
+url = "https://example.com/rss.xml"
+# Optional auth header for authenticated feeds (e.g., FreshRSS)
+auth_token = "GoogleLogin auth=YOUR_TOKEN"
 
-   # VPN Configuration (optional)
-   MULLVAD_VPN_PATH=/opt/Mullvad VPN/mullvad-vpn
-   ```
+[audio]
+card = 3  # ALSA card number (find with: aplay -l)
 
-3. Protect your credentials:
-   ```bash
-   chmod 600 ~/.config/bartender/.env
-   ```
+[comfyui]
+dir = "~/ComfyUI"  # Supports ~/ for home directory
+port = 8188
 
-> [!WARNING]
-> Never commit your `.env` file to version control. The `.env.example` file is provided as a template showing required variables without exposing real credentials.
+[proxyforge]
+targets = "claude,codex,node"  # Processes for eBPF interception
+
+[notifications]
+monitor = "primary"  # "primary", "focused", or monitor number
+groupByApp = true
+
+[clock]
+format = "%a %b %d %l:%M %p"
+
+[weather]
+location = "auto"
+units = "imperial"  # or "metric"
+
+# Widget visibility (all default to true)
+[widgets]
+workspaces = true
+feed = true
+# ... etc
+```
+
+See `config.toml.example` for a complete example with comments.
+
+### Migration from .env
+
+If you have an existing `config.json`, it will be automatically migrated to `config.toml` on first run. The old file is backed up to `config.json.bak`.
+
+For `.env` variables, move them to the appropriate TOML sections:
+- `FRESHRSS_API_URL` → `[feed] url`
+- `FRESHRSS_AUTH_TOKEN` → `[feed] auth_token` (prefix with `GoogleLogin auth=`)
+- `AUDIO_CARD` → `[audio] card`
+- `COMFYUI_*` → `[comfyui]` section
+- `PROXYFORGE_TARGETS` → `[proxyforge] targets`
+
+> [!NOTE]
+> Config changes are hot-reloaded within 100ms. No restart required.
 
 ## Styling
 
@@ -229,9 +252,9 @@ button {
 
 ## Security Considerations
 
-- **API Endpoints**: The FreshRSS API URL is configured via environment variable to avoid exposing infrastructure details in code
+- **Config File Security**: `config.toml` may contain auth tokens. Protect with `chmod 600 ~/.config/bartender/config.toml`
 - **URL Validation**: All URLs from external feeds are validated to only allow `http://` and `https://` schemes, preventing execution of dangerous schemes like `javascript:` or `file://`
-- **Credentials**: Authentication tokens must be stored in environment variables, not hardcoded in source
+- **No Hardcoded Credentials**: Authentication tokens are stored in config files, not hardcoded in source
 - **Path Configuration**: System paths are configurable to avoid hardcoded assumptions about system layout
 
 ## Dependencies
@@ -266,9 +289,10 @@ hyprland.connect("notify::workspaces", update)
 - Check compositor supports transparency
 
 ### Feed not loading
-- Verify `FRESHRSS_API_URL` and `FRESHRSS_AUTH_TOKEN` are set in `~/.config/bartender/.env`
+- Verify `[feed] url` is set in `~/.config/bartender/config.toml`
 - Check `curl` is available: `which curl`
-- Test the API manually: `curl -H "Authorization: GoogleLogin auth=YOUR_TOKEN" "$FRESHRSS_API_URL"`
+- Test the feed manually: `curl -s "YOUR_FEED_URL"`
+- For authenticated feeds, test with: `curl -H "Authorization: YOUR_AUTH_TOKEN" "YOUR_FEED_URL"`
 
 ### GTK4 crash on startup
 Some icon themes cause infinite recursion in GTK4. Set a safe theme:

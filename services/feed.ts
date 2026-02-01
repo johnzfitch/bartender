@@ -25,7 +25,6 @@ class FeedService {
   private _listeners: Set<() => void> = new Set()
 
   private readonly HALF_LIFE = 3 * 3600
-  private readonly DEFAULT_FEED_URL = "" // Set RSS_FEED_URL or FRESHRSS_API_URL environment variable
 
   static get_default(): FeedService {
     if (!this._instance) {
@@ -57,11 +56,31 @@ class FeedService {
 
     try {
       const config = ConfigService.get_default()
-      const configUrl = config.config.widgets?.feed?.url
-      const feedUrl = GLib.getenv("RSS_FEED_URL") || configUrl || this.DEFAULT_FEED_URL
+      const feedUrl = config.config.feed.url?.trim() || ""
+      const authToken = config.config.feed.auth_token?.trim() || ""
+
+      if (!feedUrl || (!feedUrl.startsWith("http://") && !feedUrl.startsWith("https://"))) {
+        this.status = "error"
+        this.error = "No feed URL configured. Set [feed] url in ~/.config/bartender/config.toml"
+        this._notify()
+        return
+      }
+
       console.log(`[Feed] Fetching: ${feedUrl}`)
 
-      const result = await execAsync(["curl", "-s", "-f", "--max-time", "15", feedUrl])
+      // Build curl command with optional auth header
+      const curlArgs = ["curl", "-s", "-f", "--max-time", "15"]
+      if (authToken) {
+        // Validate token doesn't contain header injection characters
+        if (/[\r\n]/.test(authToken)) {
+          console.warn("[Feed] auth_token contains invalid characters, ignoring")
+        } else {
+          curlArgs.push("-H", `Authorization: ${authToken}`)
+        }
+      }
+      curlArgs.push(feedUrl)
+
+      const result = await execAsync(curlArgs)
       console.log(`[Feed] Got ${result.length} bytes`)
 
       this.articles = this._parseRss(result)

@@ -1,0 +1,60 @@
+# Bartender Configuration
+
+[layout]
+left = ["workspaces", "weather"]
+center = ["feed"]
+right = ["tray", "bluetooth", "wifi", "audiomixer", "sysmon", "vpn", "clock"]
+
+[feed]
+# RSS feed URL - works with any standard RSS/Atom feed
+url = "https://example.com/rss.xml"
+
+# Optional auth header for authenticated feeds
+# Example for FreshRSS: "GoogleLogin auth=YOUR_TOKEN"
+auth_token = ""
+
+[audio]
+# ALSA card number for speaker/headphone toggle (find with: aplay -l)
+card = 3
+
+[comfyui]
+# ComfyUI installation directory (supports ~/)
+dir = "~/ComfyUI"
+port = 8188
+# url = "http://127.0.0.1:8188"
+# python = "~/ComfyUI/venv312/bin/python"
+# model_paths = "~/ComfyUI/extra_model_paths.yml"
+# start_cmd = ""
+
+[proxyforge]
+# Comma-separated process names for eBPF interception
+targets = "claude,codex,node"
+
+[notifications]
+# Where to show: "primary", "focused", or monitor number
+monitor = "primary"
+groupByApp = true
+
+[clock]
+format = "%a %b %d %l:%M %p"
+
+[weather]
+location = "auto"
+units = "imperial"
+
+[widgets]
+# Set to false to hide a widget
+workspaces = true
+feed = true
+tray = true
+audio = true
+volume = true
+sysmon = true
+comfyui = true
+proxyforge = true
+vpn = true
+clock = true
+weather = true
+wifi = true
+bluetooth = true
+audiomixer = true

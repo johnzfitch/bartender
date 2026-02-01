@@ -1,5 +1,6 @@
 import GLib from "gi://GLib"
 import { execAsync } from "ags/process"
+import ConfigService from "./config"
 
 export type ProxyStatus = "active" | "starting" | "stopping" | "off"
 
@@ -50,8 +51,8 @@ class ProxyForgeService {
   async toggle(): Promise<void> {
     const flagFile = GLib.get_home_dir() + "/.cache/proxyforge-enabled"
     const proxyForgePath = GLib.get_home_dir() + "/dev/proxyforge/proxyforge.py"
-    // Default targets: claude (CLI), claude- (Desktop), codex, node (for various tools)
-    const localTargets = GLib.getenv("PROXYFORGE_TARGETS") || "claude,codex,node"
+    const config = ConfigService.get_default()
+    const localTargets = config.config.proxyforge.targets
 
     if (this.status === "active" || this.status === "starting") {
       // Stop proxy - kill the mitmproxy process

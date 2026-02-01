@@ -1,5 +1,6 @@
 import GLib from "gi://GLib"
 import { execAsync } from "ags/process"
+import ConfigService, { expandPath } from "./config"
 
 export type ComfyUIStatus = "running" | "starting" | "stopping" | "stopped"
 
@@ -32,20 +33,21 @@ class ComfyUIService {
     this._listeners.forEach((cb) => cb())
   }
 
-  private _home(): string {
-    return GLib.get_home_dir()
+  private _getConfig() {
+    return ConfigService.get_default().config.comfyui
   }
 
   private _comfyDir(): string {
-    return GLib.getenv("COMFYUI_DIR") || `${this._home()}/ComfyUI`
+    return expandPath(this._getConfig().dir)
   }
 
   private _comfyPort(): string {
-    return GLib.getenv("COMFYUI_PORT") || "8188"
+    return String(this._getConfig().port)
   }
 
   private _comfyUrl(): string {
-    return GLib.getenv("COMFYUI_URL") || `http://127.0.0.1:${this._comfyPort()}`
+    const cfg = this._getConfig()
+    return cfg.url || `http://127.0.0.1:${cfg.port}`
   }
 
   private _pidPath(): string {
@@ -57,12 +59,17 @@ class ComfyUIService {
   }
 
   private _extraModelPaths(): string {
-    return GLib.getenv("COMFYUI_MODEL_PATHS") || `${this._comfyDir()}/extra_model_paths.yml`
+    const cfg = this._getConfig()
+    if (cfg.model_paths) return expandPath(cfg.model_paths)
+    return `${this._comfyDir()}/extra_model_paths.yml`
   }
 
   private _pythonPath(): string {
-    const envPath = GLib.getenv("COMFYUI_PYTHON")
-    if (envPath && GLib.file_test(envPath, GLib.FileTest.EXISTS)) return envPath
+    const cfg = this._getConfig()
+    if (cfg.python) {
+      const configPath = expandPath(cfg.python)
+      if (GLib.file_test(configPath, GLib.FileTest.EXISTS)) return configPath
+    }
 
     const venv312 = `${this._comfyDir()}/venv312/bin/python`
     if (GLib.file_test(venv312, GLib.FileTest.EXISTS)) return venv312
@@ -182,7 +189,8 @@ class ComfyUIService {
   }
 
   private _startCommand(): string {
-    return GLib.getenv("COMFYUI_START_CMD") || this._defaultStartCommand()
+    const cfg = this._getConfig()
+    return cfg.start_cmd || this._defaultStartCommand()
   }
 
   private async _checkRunning(): Promise<{ running: boolean; pid: number | null }> {
