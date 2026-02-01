@@ -2,6 +2,7 @@ import GLib from "gi://GLib"
 import Gdk from "gi://Gdk?version=4.0"
 import { createState, onCleanup } from "ags"
 import { execAsync } from "ags/process"
+import ConfigService from "../services/config"
 
 type AudioMode = "speakers" | "headphones" | "both" | "muted"
 
@@ -9,8 +10,9 @@ export default function Audio() {
   const [mode, setMode] = createState<AudioMode>("speakers")
   const [icon, setIcon] = createState("audio-speakers-symbolic")
 
-  // Get audio card from environment variable with fallback to 3
-  const audioCard = GLib.getenv("AUDIO_CARD") || "3"
+  // Get audio card from config
+  const config = ConfigService.get_default()
+  const audioCard = String(config.config.audio.card)
 
   async function refresh(): Promise<void> {
     try {

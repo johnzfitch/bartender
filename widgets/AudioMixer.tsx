@@ -2,6 +2,7 @@ import GLib from "gi://GLib"
 import AstalWp from "gi://AstalWp"
 import { createBinding, createState, For, onCleanup } from "ags"
 import { execAsync } from "ags/process"
+import ConfigService from "../services/config"
 
 type JackMode = "speakers" | "headphones" | "both"
 
@@ -18,7 +19,8 @@ export default function AudioMixer() {
 
   // Output jack state (speakers/headphones/both) - ALC1220 specific
   const [jackMode, setJackMode] = createState<JackMode>("speakers")
-  const audioCard = GLib.getenv("AUDIO_CARD") || "2" // ALC1220 is typically card 2
+  const config = ConfigService.get_default()
+  const audioCard = String(config.config.audio.card)
 
   async function refreshJackMode(): Promise<void> {
     try {
