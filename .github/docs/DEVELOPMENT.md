@@ -141,7 +141,7 @@ Headers:
 ## Implementation Order
 
 ### Phase 1: Foundation (Day 1-2)
-1. flake.nix with AGS + Astal deps
+1. Install deps via `make install-deps`
 2. app.tsx entry point
 3. Bar.tsx with basic layout
 4. Test: bar appears on screen

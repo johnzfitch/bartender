@@ -56,19 +56,11 @@ The bartender service will automatically stop waybar and mako when started. See 
 
 ### Development
 
-**Native Arch Linux (recommended for development)**:
 ```bash
 git clone https://github.com/johnzfitch/bartender.git
 cd bartender
 make install-deps  # One-time: installs pacman/AUR dependencies
 make dev           # Build and run
-```
-
-**Using Nix**:
-```bash
-git clone https://github.com/johnzfitch/bartender.git
-cd bartender
-nix develop --command ags run .
 ```
 
 ### Kill / Restart
@@ -103,8 +95,6 @@ systemctl --user start waybar.service mako.service
 
 ```
 bartender/
-├── flake.nix                 # Nix build configuration
-│
 ├── app.tsx                   # Entry point - creates bars per monitor
 │                             # Sets up instanceName, requestHandler
 │
@@ -259,7 +249,7 @@ button {
 
 ## Dependencies
 
-Managed via `flake.nix` or `install-deps.sh`:
+Managed via PKGBUILD or `make install-deps`:
 
 **Pacman:**
 - gjs, gtk4, gtk4-layer-shell, libsoup3, libadwaita
