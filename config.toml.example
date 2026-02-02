@@ -13,6 +13,44 @@ url = "https://example.com/rss.xml"
 # Example for FreshRSS: "GoogleLogin auth=YOUR_TOKEN"
 auth_token = ""
 
+# Enable debug logging to ~/.local/state/bartender/feed-debug-*.log
+debug_log = false
+
+# Display duration bounds (seconds) - calculated from title word count
+display_min = 6
+display_max = 15
+
+# Exploration rate for epsilon-greedy selection (0.0-1.0)
+epsilon = 0.15
+
+# Diversity penalty half-life (seconds) - time for repeat probability to halve
+diversity_half_life = 1200
+
+# Refresh interval (seconds) - how often to check for new articles (min: 30)
+# Carousel rotates through cached articles continuously (6-15s per article)
+# This only controls background fetching from feed server
+refresh_interval = 21600
+
+# Actualize (refresh) the feed before fetching - triggers feed server to pull new content
+# On each refresh cycle, bartender tells your feed server to update, then fetches fresh articles
+# Base URL for actualize requests (leave empty to disable)
+actualize_base_url = ""
+
+# Comma-separated feed IDs to actualize (e.g., "482,436,9,570,517")
+actualize_feed_ids = ""
+
+# Maximum articles to keep in cache (stable size via sliding window)
+cache_size = 1000
+
+# Days of history to pull on initial load (cold start)
+initial_load_days = 30
+
+# Hours of new content to pull on incremental refresh
+incremental_hours = 6
+
+# Enable incremental updates (false = always pull full feed)
+enable_incremental = true
+
 [audio]
 # ALSA card number for speaker/headphone toggle (find with: aplay -l)
 card = 3

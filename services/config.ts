@@ -12,6 +12,18 @@ export interface LayoutConfig {
 export interface FeedConfig {
   url: string
   auth_token?: string
+  debug_log?: boolean
+  display_min?: number
+  display_max?: number
+  epsilon?: number
+  diversity_half_life?: number
+  refresh_interval?: number
+  actualize_base_url?: string
+  actualize_feed_ids?: string
+  cache_size?: number
+  initial_load_days?: number
+  incremental_hours?: number
+  enable_incremental?: boolean
 }
 
 export interface AudioConfig {
@@ -84,6 +96,18 @@ const DEFAULT_CONFIG: Config = {
   feed: {
     url: "",
     auth_token: "",
+    debug_log: false,
+    display_min: 6,
+    display_max: 15,
+    epsilon: 0.15,
+    diversity_half_life: 1200,
+    refresh_interval: 21600,
+    actualize_base_url: "",
+    actualize_feed_ids: "",
+    cache_size: 1000,
+    initial_load_days: 30,
+    incremental_hours: 6,
+    enable_incremental: true,
   },
   audio: {
     card: 3,
@@ -461,6 +485,40 @@ class ConfigService {
     if (parsed.feed && typeof parsed.feed === "object") {
       if (typeof parsed.feed.url === "string") result.feed.url = parsed.feed.url
       if (typeof parsed.feed.auth_token === "string") result.feed.auth_token = parsed.feed.auth_token
+      if (typeof parsed.feed.debug_log === "boolean") result.feed.debug_log = parsed.feed.debug_log
+      if (typeof parsed.feed.display_min === "number" && parsed.feed.display_min > 0) {
+        result.feed.display_min = parsed.feed.display_min
+      }
+      if (typeof parsed.feed.display_max === "number" && parsed.feed.display_max > 0) {
+        result.feed.display_max = parsed.feed.display_max
+      }
+      if (typeof parsed.feed.epsilon === "number" && parsed.feed.epsilon >= 0 && parsed.feed.epsilon <= 1) {
+        result.feed.epsilon = parsed.feed.epsilon
+      }
+      if (typeof parsed.feed.diversity_half_life === "number" && parsed.feed.diversity_half_life > 0) {
+        result.feed.diversity_half_life = parsed.feed.diversity_half_life
+      }
+      if (typeof parsed.feed.refresh_interval === "number" && parsed.feed.refresh_interval >= 30) {
+        result.feed.refresh_interval = parsed.feed.refresh_interval
+      }
+      if (typeof parsed.feed.actualize_base_url === "string") {
+        result.feed.actualize_base_url = parsed.feed.actualize_base_url
+      }
+      if (typeof parsed.feed.actualize_feed_ids === "string") {
+        result.feed.actualize_feed_ids = parsed.feed.actualize_feed_ids
+      }
+      if (typeof parsed.feed.cache_size === "number" && parsed.feed.cache_size > 0) {
+        result.feed.cache_size = parsed.feed.cache_size
+      }
+      if (typeof parsed.feed.initial_load_days === "number" && parsed.feed.initial_load_days > 0) {
+        result.feed.initial_load_days = parsed.feed.initial_load_days
+      }
+      if (typeof parsed.feed.incremental_hours === "number" && parsed.feed.incremental_hours > 0) {
+        result.feed.incremental_hours = parsed.feed.incremental_hours
+      }
+      if (typeof parsed.feed.enable_incremental === "boolean") {
+        result.feed.enable_incremental = parsed.feed.enable_incremental
+      }
     }
 
     // Validate audio
@@ -558,6 +616,43 @@ url = "${e(config.feed.url)}"
 # Optional auth header for authenticated feeds
 # Example for FreshRSS: "GoogleLogin auth=YOUR_TOKEN"
 auth_token = "${e(config.feed.auth_token || "")}"
+
+# Enable debug logging to ~/.local/state/bartender/feed-debug-*.log
+debug_log = ${config.feed.debug_log}
+
+# Display duration bounds (seconds) - calculated from title word count
+display_min = ${config.feed.display_min}
+display_max = ${config.feed.display_max}
+
+# Exploration rate for epsilon-greedy selection (0.0-1.0)
+epsilon = ${config.feed.epsilon}
+
+# Diversity penalty half-life (seconds) - time for repeat probability to halve
+diversity_half_life = ${config.feed.diversity_half_life}
+
+# Refresh interval (seconds) - how often to check for new articles (min: 30)
+# Carousel rotates through cached articles continuously. This only controls background fetching.
+refresh_interval = ${config.feed.refresh_interval}
+
+# Actualize (refresh) the feed before fetching - triggers feed server to pull new content
+# On each refresh cycle, bartender tells your feed server to update, then fetches fresh articles
+# Base URL for actualize requests (leave empty to disable)
+actualize_base_url = "${e(config.feed.actualize_base_url || "")}"
+
+# Comma-separated feed IDs to actualize (e.g., "482,436,9,570,517")
+actualize_feed_ids = "${e(config.feed.actualize_feed_ids || "")}"
+
+# Maximum articles to keep in cache (stable size via sliding window)
+cache_size = ${config.feed.cache_size}
+
+# Days of history to pull on initial load (cold start)
+initial_load_days = ${config.feed.initial_load_days}
+
+# Hours of new content to pull on incremental refresh
+incremental_hours = ${config.feed.incremental_hours}
+
+# Enable incremental updates (false = always pull full feed)
+enable_incremental = ${config.feed.enable_incremental}
 
 [audio]
 # ALSA card number for speaker/headphone toggle (find with: aplay -l)
