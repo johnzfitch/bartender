@@ -3,8 +3,9 @@ result
 result-*
 /bartender
 
-# Environment (contains secrets)
+# Environment and config (contains secrets)
 .env
+config.toml
 
 # Ghidra/analysis artifacts
 pyghidra_mcp_projects/
