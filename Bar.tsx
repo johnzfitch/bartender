@@ -211,7 +211,17 @@ function Widget({ name }: { name: string }) {
     return <box />
   }
 
-  return <Component />
+  try {
+    return <Component />
+  } catch (error) {
+    console.error(`[Bar] Widget ${name} crashed:`, error)
+    return (
+      <box className="widget-error" spacing={4}>
+        <icon icon="dialog-error-symbolic" />
+        <label label={`${name} error`} />
+      </box>
+    )
+  }
 }
 
 // Renders a section of widgets (left, center, or right)

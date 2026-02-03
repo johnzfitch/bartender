@@ -69,14 +69,48 @@ class WeatherService {
     this._listeners.forEach((cb) => cb())
   }
 
+  private async _getLocation(): Promise<{ lat: number; lon: number }> {
+    const config = ConfigService.get_default().config.weather
+    const location = config.location?.trim() || "auto"
+
+    // Check if it's in "lat,lon" format
+    if (location !== "auto") {
+      const parts = location.split(",").map(s => s.trim())
+      if (parts.length === 2) {
+        const lat = parseFloat(parts[0])
+        const lon = parseFloat(parts[1])
+        if (!isNaN(lat) && !isNaN(lon)) {
+          console.log(`[Weather] Using configured location: ${lat}, ${lon}`)
+          return { lat, lon }
+        }
+      }
+    }
+
+    // Auto-detect location via IP
+    console.log("[Weather] Auto-detecting location via IP...")
+    try {
+      const result = await execAsync(["curl", "-s", "--max-time", "5", "http://ip-api.com/json/?fields=lat,lon"])
+      const data = JSON.parse(result)
+      if (data.lat && data.lon) {
+        console.log(`[Weather] Auto-detected location: ${data.lat}, ${data.lon}`)
+        return { lat: data.lat, lon: data.lon }
+      }
+    } catch (e) {
+      console.warn(`[Weather] Failed to auto-detect location: ${e}`)
+    }
+
+    // Fallback to US center
+    console.log("[Weather] Using fallback location (US center)")
+    return { lat: 39.8283, lon: -98.5795 }
+  }
+
   async refresh(): Promise<void> {
     console.log("[Weather] refresh() called")
     this.loading = true
     this._notify()
 
     try {
-      const lat = 38.4404
-      const lon = -122.7141
+      const { lat, lon } = await this._getLocation()
 
       // Get grid point data
       const pointUrl = `https://api.weather.gov/points/${lat},${lon}`

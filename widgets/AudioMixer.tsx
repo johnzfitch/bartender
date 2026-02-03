@@ -3,6 +3,7 @@ import AstalWp from "gi://AstalWp"
 import { createBinding, createState, For, onCleanup } from "ags"
 import { execAsync } from "ags/process"
 import ConfigService from "../services/config"
+import AudioControlService from "../services/audioctl"
 
 type JackMode = "speakers" | "headphones" | "both"
 
@@ -17,27 +18,21 @@ export default function AudioMixer() {
   const speakers = createBinding(audio, "speakers")
   const streams = createBinding(audio, "streams")
 
-  // Output jack state (speakers/headphones/both) - ALC1220 specific
+  // Output jack state (speakers/headphones/both) - codec-agnostic
   const [jackMode, setJackMode] = createState<JackMode>("speakers")
   const config = ConfigService.get_default()
   const audioCard = String(config.config.audio.card)
+  const audioCtl = AudioControlService.get_default()
 
   async function refreshJackMode(): Promise<void> {
     try {
-      let lineOut = ""
-      let headphone = ""
+      const speakerCtl = audioCtl.speakerControl
+      const headphoneCtl = audioCtl.headphoneControl
 
-      try {
-        lineOut = await execAsync(["amixer", "-c", audioCard, "sget", "Line Out"])
-      } catch {}
-      try {
-        headphone = await execAsync(["amixer", "-c", audioCard, "sget", "Headphone"])
-      } catch {}
+      const speakerOn = await audioCtl.getControlState(speakerCtl, audioCard)
+      const headphoneOn = await audioCtl.getControlState(headphoneCtl, audioCard)
 
-      const lineOutOn = lineOut.includes("[on]")
-      const headphoneOn = headphone.includes("[on]")
-
-      if (lineOutOn && headphoneOn) {
+      if (speakerOn && headphoneOn) {
         setJackMode("both")
       } else if (headphoneOn) {
         setJackMode("headphones")
@@ -51,18 +46,21 @@ export default function AudioMixer() {
 
   async function setJack(mode: JackMode): Promise<void> {
     try {
+      const speakerCtl = audioCtl.speakerControl
+      const headphoneCtl = audioCtl.headphoneControl
+
       switch (mode) {
         case "speakers":
-          await execAsync(["amixer", "-c", audioCard, "sset", "Line Out", "on"]).catch(() => {})
-          await execAsync(["amixer", "-c", audioCard, "sset", "Headphone", "off"]).catch(() => {})
+          await audioCtl.setControlState(speakerCtl, audioCard, "on")
+          await audioCtl.setControlState(headphoneCtl, audioCard, "off")
           break
         case "headphones":
-          await execAsync(["amixer", "-c", audioCard, "sset", "Line Out", "off"]).catch(() => {})
-          await execAsync(["amixer", "-c", audioCard, "sset", "Headphone", "on"]).catch(() => {})
+          await audioCtl.setControlState(speakerCtl, audioCard, "off")
+          await audioCtl.setControlState(headphoneCtl, audioCard, "on")
           break
         case "both":
-          await execAsync(["amixer", "-c", audioCard, "sset", "Line Out", "on"]).catch(() => {})
-          await execAsync(["amixer", "-c", audioCard, "sset", "Headphone", "on"]).catch(() => {})
+          await audioCtl.setControlState(speakerCtl, audioCard, "on")
+          await audioCtl.setControlState(headphoneCtl, audioCard, "on")
           break
       }
       setJackMode(mode)

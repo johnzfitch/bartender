@@ -1,7 +1,7 @@
 # Maintainer: Zack <zack@example.com>
 pkgname=bartender-git
 pkgver=r1
-pkgrel=1
+pkgrel=2
 pkgdesc="GTK4 status bar built with AGS for Hyprland - replaces waybar/mako"
 arch=('x86_64')
 url="https://github.com/johnzfitch/bartender"
@@ -30,6 +30,7 @@ optdepends=(
     'waybar: fallback status bar'
     'mako: fallback notification daemon'
     'mullvad-vpn: VPN integration'
+    'jq: article count in status display'
 )
 makedepends=('git' 'npm')
 provides=('bartender')

@@ -3,6 +3,7 @@ import Gdk from "gi://Gdk?version=4.0"
 import { createState, onCleanup } from "ags"
 import { execAsync } from "ags/process"
 import ConfigService from "../services/config"
+import AudioControlService from "../services/audioctl"
 
 type AudioMode = "speakers" | "headphones" | "both" | "muted"
 
@@ -10,36 +11,23 @@ export default function Audio() {
   const [mode, setMode] = createState<AudioMode>("speakers")
   const [icon, setIcon] = createState("audio-speakers-symbolic")
 
-  // Get audio card from config
+  // Get audio card from config and control service
   const config = ConfigService.get_default()
   const audioCard = String(config.config.audio.card)
+  const audioCtl = AudioControlService.get_default()
 
   async function refresh(): Promise<void> {
     try {
-      let lineOut: string
-      let headphone: string
+      const speakerCtl = audioCtl.speakerControl
+      const headphoneCtl = audioCtl.headphoneControl
 
-      try {
-        lineOut = await execAsync(["amixer", "-c", audioCard, "sget", "Line Out"])
-      } catch (e) {
-        // Line Out control doesn't exist, assume off
-        lineOut = ""
-      }
-
-      try {
-        headphone = await execAsync(["amixer", "-c", audioCard, "sget", "Headphone"])
-      } catch (e) {
-        // Headphone control doesn't exist, assume off
-        headphone = ""
-      }
-
-      const lineOutOn = lineOut.includes("[on]")
-      const headphoneOn = headphone.includes("[on]")
+      const speakerOn = await audioCtl.getControlState(speakerCtl, audioCard)
+      const headphoneOn = await audioCtl.getControlState(headphoneCtl, audioCard)
 
       let newMode: AudioMode
-      if (lineOutOn && headphoneOn) {
+      if (speakerOn && headphoneOn) {
         newMode = "both"
-      } else if (lineOutOn) {
+      } else if (speakerOn) {
         newMode = "speakers"
       } else if (headphoneOn) {
         newMode = "headphones"
@@ -79,6 +67,8 @@ export default function Audio() {
 
   async function toggle(): Promise<void> {
     const current = mode()
+    const speakerCtl = audioCtl.speakerControl
+    const headphoneCtl = audioCtl.headphoneControl
 
     // Cycle: speakers -> headphones -> both -> speakers
     let newMode: AudioMode
@@ -97,40 +87,16 @@ export default function Audio() {
     try {
       switch (newMode) {
         case "speakers":
-          try {
-            await execAsync(["amixer", "-c", audioCard, "sset", "Line Out", "on"])
-          } catch (e) {
-            // Ignore if control doesn't exist
-          }
-          try {
-            await execAsync(["amixer", "-c", audioCard, "sset", "Headphone", "off"])
-          } catch (e) {
-            // Ignore if control doesn't exist
-          }
+          await audioCtl.setControlState(speakerCtl, audioCard, "on")
+          await audioCtl.setControlState(headphoneCtl, audioCard, "off")
           break
         case "headphones":
-          try {
-            await execAsync(["amixer", "-c", audioCard, "sset", "Line Out", "off"])
-          } catch (e) {
-            // Ignore if control doesn't exist
-          }
-          try {
-            await execAsync(["amixer", "-c", audioCard, "sset", "Headphone", "on"])
-          } catch (e) {
-            // Ignore if control doesn't exist
-          }
+          await audioCtl.setControlState(speakerCtl, audioCard, "off")
+          await audioCtl.setControlState(headphoneCtl, audioCard, "on")
           break
         case "both":
-          try {
-            await execAsync(["amixer", "-c", audioCard, "sset", "Line Out", "on"])
-          } catch (e) {
-            // Ignore if control doesn't exist
-          }
-          try {
-            await execAsync(["amixer", "-c", audioCard, "sset", "Headphone", "on"])
-          } catch (e) {
-            // Ignore if control doesn't exist
-          }
+          await audioCtl.setControlState(speakerCtl, audioCard, "on")
+          await audioCtl.setControlState(headphoneCtl, audioCard, "on")
           break
       }
 

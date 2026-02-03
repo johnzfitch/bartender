@@ -20,13 +20,13 @@ systemctl --user enable --now bartender.service    # Start (stops waybar/mako)
 | | Feature | Description |
 |---|---------|-------------|
 | ![workspace](.github/assets/icons/workspace.png) | **Workspace Indicators** | 1-5 with visual states: focused, occupied, empty |
-| ![network](.github/assets/icons/network.png) | **Feed Ticker** | FreshRSS integration with atomic click handling |
+| ![network](.github/assets/icons/network.png) | **Feed Ticker** | FreshRSS integration with HTTP caching (ETag/304), pagination (1000 articles), cache freshness |
 | ![vpn](.github/assets/icons/vpn.png) | **VPN Status** | Mullvad with rotation toggle (US/CA) |
 | ![lock](.github/assets/icons/lock.png) | **ProxyForge** | Debug proxy control (mitmdump) |
 | ![speaker](.github/assets/icons/speaker.png) | **Audio Toggle** | Speakers/headphones/both via ALSA |
 | ![monitor](.github/assets/icons/monitor.png) | **System Tray** | With intelligent icon filtering |
 
-Plus: transparent background, volume slider, clock with calendar popup, WiFi, Bluetooth, weather, and integrated notifications.
+Plus: transparent background, volume slider, clock with calendar popup, WiFi, Bluetooth, weather with auto-location, and integrated notifications.
 
 ![Architecture](.github/assets/architecture.svg)
 
@@ -66,6 +66,12 @@ make dev           # Build and run
 ### Kill / Restart
 
 ```bash
+# Using CLI wrapper (recommended)
+bartender --stop       # Stop bartender
+bartender --restart    # Restart bartender
+bartender --status     # Check status
+bartender --log        # View live logs
+
 # If using systemd
 systemctl --user restart bartender.service
 
@@ -153,6 +159,10 @@ right = ["tray", "bluetooth", "wifi", "audiomixer", "sysmon", "vpn", "clock"]
 url = "https://example.com/rss.xml"
 # Optional auth header for authenticated feeds (e.g., FreshRSS)
 auth_token = "GoogleLogin auth=YOUR_TOKEN"
+# Enable debug logging to ~/.local/state/bartender/feed-debug-*.log
+debug_log = false  # default: false
+# Target cache size (articles fetched in 400/batch increments)
+cache_size = 1000  # default: 1000
 
 [audio]
 card = 3  # ALSA card number (find with: aplay -l)
@@ -172,7 +182,7 @@ groupByApp = true
 format = "%a %b %d %l:%M %p"
 
 [weather]
-location = "auto"
+location = "auto"  # "auto" for IP-based geolocation, or "lat,lon" format (e.g., "40.7128,-74.0060")
 units = "imperial"  # or "metric"
 
 # Widget visibility (all default to true)
@@ -283,6 +293,9 @@ hyprland.connect("notify::workspaces", update)
 - Check `curl` is available: `which curl`
 - Test the feed manually: `curl -s "YOUR_FEED_URL"`
 - For authenticated feeds, test with: `curl -H "Authorization: YOUR_AUTH_TOKEN" "YOUR_FEED_URL"`
+- Enable debug logging: Set `debug_log = true` in `[feed]` section, then check logs at `~/.local/state/bartender/feed-debug-*.log`
+- Check cache status: `bartender --status` shows article count
+- View live feed activity: `bartender --log` or `bartender --debug`
 
 ### GTK4 crash on startup
 Some icon themes cause infinite recursion in GTK4. Set a safe theme:

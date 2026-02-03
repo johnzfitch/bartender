@@ -20,6 +20,9 @@ interface ArticleCache {
   version: number
   articles: CachedArticle[]
   lastPruned: number
+  lastFetched?: number
+  etag?: string
+  lastModified?: string
 }
 
 interface Channel {
@@ -51,6 +54,9 @@ class FeedService {
   private _recentlyShown: Map<string, number> = new Map()
 
   private readonly HALF_LIFE = 3 * 3600
+  private readonly RECENTLY_SHOWN_TTL = 7200  // 2 hours
+  private readonly DEBUG_LOG_MAX_DAYS = 7
+  private readonly DEBUG_LOG_MAX_SIZE = 5 * 1024 * 1024  // 5MB
   private readonly STATE_DIR = `${GLib.get_home_dir()}/.local/state/bartender`
   private readonly CACHE_PATH = `${GLib.get_home_dir()}/.local/state/bartender/article-cache.json`
 
@@ -64,6 +70,7 @@ class FeedService {
   private constructor() {
     console.log("[Feed] Service starting...")
     this._ensureStateDir()
+    this._cleanupOldLogs()
     this._startRefreshLoop()
     this._scheduleNextCycle()
     console.log("[Feed] Service initialized")
@@ -89,6 +96,69 @@ class FeedService {
     }
   }
 
+  private _pruneRecentlyShown(): void {
+    const now = Date.now() / 1000
+    const cutoff = now - this.RECENTLY_SHOWN_TTL
+    let pruned = 0
+
+    for (const [id, timestamp] of this._recentlyShown.entries()) {
+      if (timestamp < cutoff) {
+        this._recentlyShown.delete(id)
+        pruned++
+      }
+    }
+
+    if (pruned > 0) {
+      console.log(`[Feed] Pruned ${pruned} old entries from _recentlyShown (now ${this._recentlyShown.size})`)
+    }
+  }
+
+  private _cleanupOldLogs(): void {
+    try {
+      const dir = Gio.File.new_for_path(this.STATE_DIR)
+      if (!dir.query_exists(null)) return
+
+      const enumerator = dir.enumerate_children(
+        "standard::name,standard::size,time::modified",
+        Gio.FileQueryInfoFlags.NONE,
+        null
+      )
+
+      const now = Date.now() / 1000
+      const cutoff = now - (this.DEBUG_LOG_MAX_DAYS * 86400)
+      let removed = 0
+
+      let info: Gio.FileInfo | null
+      while ((info = enumerator.next_file(null)) !== null) {
+        const name = info.get_name()
+        if (!name.startsWith("feed-debug-") || !name.endsWith(".log")) continue
+
+        const file = dir.get_child(name)
+        const mtime = info.get_modification_date_time()?.to_unix() || 0
+        const size = info.get_size()
+
+        // Remove if too old or too large
+        if (mtime < cutoff || size > this.DEBUG_LOG_MAX_SIZE) {
+          try {
+            file.delete(null)
+            removed++
+            console.log(`[Feed] Removed old/large log: ${name} (${(size / 1024 / 1024).toFixed(1)}MB, ${((now - mtime) / 86400).toFixed(1)}d old)`)
+          } catch (e) {
+            console.warn(`[Feed] Failed to remove log ${name}: ${e}`)
+          }
+        }
+      }
+
+      enumerator.close(null)
+
+      if (removed > 0) {
+        console.log(`[Feed] Cleaned up ${removed} old log files`)
+      }
+    } catch (e) {
+      console.warn(`[Feed] Failed to cleanup old logs: ${e}`)
+    }
+  }
+
   private _debugLog(event: string, ...data: any[]): void {
     const config = ConfigService.get_default().config.feed
     if (!config.debug_log) return
@@ -105,10 +175,22 @@ class FeedService {
       const file = Gio.File.new_for_path(logPath)
       let existing = ""
       if (file.query_exists(null)) {
-        const [success, contents] = file.load_contents(null)
-        if (success) {
-          const decoder = new TextDecoder()
-          existing = decoder.decode(contents)
+        // Check file size before appending
+        const info = file.query_info("standard::size", Gio.FileQueryInfoFlags.NONE, null)
+        const currentSize = info.get_size()
+
+        if (currentSize > this.DEBUG_LOG_MAX_SIZE) {
+          // Rotate: rename current file and start fresh
+          const rotatePath = `${this.STATE_DIR}/feed-debug-${dateStr}-${timestamp}.log`
+          const rotateFile = Gio.File.new_for_path(rotatePath)
+          file.move(rotateFile, Gio.FileCopyFlags.NONE, null, null)
+          console.log(`[Feed] Rotated log file (${(currentSize / 1024 / 1024).toFixed(1)}MB)`)
+        } else {
+          const [success, contents] = file.load_contents(null)
+          if (success) {
+            const decoder = new TextDecoder()
+            existing = decoder.decode(contents)
+          }
         }
       }
       GLib.file_set_contents(logPath, existing + line)
@@ -191,7 +273,10 @@ class FeedService {
     return {
       version: 1,
       articles: pruned,
-      lastPruned: now
+      lastPruned: now,
+      lastFetched: cache.lastFetched,
+      etag: cache.etag,
+      lastModified: cache.lastModified
     }
   }
 
@@ -446,6 +531,85 @@ class FeedService {
     }))
   }
 
+  private async _fetchBatch(feedUrl: string, authToken: string, cache: ArticleCache): Promise<{
+    articles: Article[]
+    etag?: string
+    lastModified?: string
+    is304: boolean
+  }> {
+    const headerFile = `${this.STATE_DIR}/feed-headers-${Date.now()}.tmp`
+    const curlArgs = ["curl", "-s", "-f", "-D", headerFile, "--max-time", "30"]
+
+    // Add conditional request headers if we have cached metadata
+    if (cache.etag) {
+      curlArgs.push("-H", `If-None-Match: ${cache.etag}`)
+    }
+    if (cache.lastModified) {
+      curlArgs.push("-H", `If-Modified-Since: ${cache.lastModified}`)
+    }
+
+    if (authToken) {
+      if (/[\r\n]/.test(authToken)) {
+        console.warn("[Feed] auth_token contains invalid characters, ignoring")
+      } else {
+        curlArgs.push("-H", `Authorization: ${authToken}`)
+      }
+    }
+    curlArgs.push(feedUrl)
+
+    console.log(`[Feed] Fetching batch: ${feedUrl}`)
+    const result = await execAsync(curlArgs).catch(e => {
+      console.warn(`[Feed] Batch fetch failed: ${e}`)
+      return ""
+    })
+    console.log(`[Feed] Batch fetch complete: ${result.length} bytes`)
+
+    // Read and parse response headers
+    let responseEtag: string | undefined
+    let responseLastModified: string | undefined
+    let is304 = false
+
+    try {
+      const headerFileObj = Gio.File.new_for_path(headerFile)
+      if (headerFileObj.query_exists(null)) {
+        const [success, contents] = headerFileObj.load_contents(null)
+        if (success) {
+          const decoder = new TextDecoder()
+          const headers = decoder.decode(contents)
+
+          if (headers.includes("HTTP/") && headers.includes(" 304 ")) {
+            is304 = true
+          }
+
+          const etagMatch = headers.match(/^ETag:\s*(.+)$/mi)
+          if (etagMatch) {
+            responseEtag = etagMatch[1].trim()
+          }
+
+          const lastModMatch = headers.match(/^Last-Modified:\s*(.+)$/mi)
+          if (lastModMatch) {
+            responseLastModified = lastModMatch[1].trim()
+          }
+        }
+        headerFileObj.delete(null)
+      }
+    } catch (e) {
+      console.warn(`[Feed] Failed to parse response headers: ${e}`)
+    }
+
+    let articles: Article[] = []
+    if (!is304 && result) {
+      articles = this._parseRss(result)
+    }
+
+    return {
+      articles,
+      etag: responseEtag,
+      lastModified: responseLastModified,
+      is304
+    }
+  }
+
   async refresh(showLoading: boolean = false): Promise<void> {
     console.log("[Feed] refresh() called")
 
@@ -471,35 +635,79 @@ class FeedService {
       // Load cache to determine initial vs incremental
       let cache = this._loadCache()
       const isInitialLoad = this._shouldDoInitialLoad(cache)
+      const targetSize = config.config.feed.cache_size ?? 1000
 
-      // Build feed URL with appropriate parameters
+      // Build base feed URL
       const feedUrl = this._buildFeedUrl(baseFeedUrl, isInitialLoad)
 
       console.log(`[Feed] ${isInitialLoad ? 'Initial' : 'Incremental'} fetch: ${feedUrl}`)
 
-      // Fetch feed
-      const curlArgs = ["curl", "-s", "-f", "--max-time", "30"]  // Longer timeout for large feeds
-      if (authToken) {
-        if (/[\r\n]/.test(authToken)) {
-          console.warn("[Feed] auth_token contains invalid characters, ignoring")
-        } else {
-          curlArgs.push("-H", `Authorization: ${authToken}`)
+      // Fetch articles with pagination support
+      let allArticles: Article[] = []
+      let responseEtag: string | undefined
+      let responseLastModified: string | undefined
+      let is304 = false
+
+      // Fetch first batch
+      const firstBatch = await this._fetchBatch(feedUrl, authToken, cache)
+      is304 = firstBatch.is304
+      responseEtag = firstBatch.etag
+      responseLastModified = firstBatch.lastModified
+
+      if (is304) {
+        console.log("[Feed] 304 Not Modified - using cached data")
+      } else {
+        console.log(`[Feed] Fetched ${firstBatch.articles.length} articles in first batch`)
+        allArticles = firstBatch.articles
+
+        // For initial loads, fetch additional batches to reach target
+        // Server limit is 400 per request, so we need multiple requests
+        if (isInitialLoad && allArticles.length >= 400 && targetSize > 400) {
+          const batchesNeeded = Math.ceil(targetSize / 400) - 1 // Already got first batch
+          console.log(`[Feed] Fetching ${batchesNeeded} additional batches to reach ${targetSize} articles...`)
+
+          for (let i = 1; i <= batchesNeeded; i++) {
+            const offset = i * 400
+            const batchUrl = feedUrl + `&offset=${offset}`
+
+            try {
+              const batch = await this._fetchBatch(batchUrl, authToken, { version: 1, articles: [], lastPruned: 0 })
+              if (batch.articles.length > 0) {
+                console.log(`[Feed] Batch ${i + 1}: fetched ${batch.articles.length} articles (offset ${offset})`)
+                allArticles = allArticles.concat(batch.articles)
+              } else {
+                console.log(`[Feed] Batch ${i + 1}: no more articles available`)
+                break // No more articles
+              }
+            } catch (e) {
+              console.warn(`[Feed] Failed to fetch batch ${i + 1}: ${e}`)
+              break
+            }
+          }
+
+          console.log(`[Feed] Total fetched: ${allArticles.length} articles`)
         }
       }
-      curlArgs.push(feedUrl)
 
-      const result = await execAsync(curlArgs)
-      console.log(`[Feed] Got ${result.length} bytes`)
+      let merged: CachedArticle[] = []
 
-      const freshArticles = this._parseRss(result)
-      console.log(`[Feed] Parsed ${freshArticles.length} articles`)
-
-      // Merge with cache
-      const merged = this._mergeWithCache(freshArticles, cache)
+      if (is304) {
+        merged = cache.articles
+      } else {
+        // Merge with cache
+        merged = this._mergeWithCache(allArticles, cache)
+      }
 
       // Apply sliding window to maintain target size
-      const targetSize = config.config.feed.cache_size ?? 1000
-      const prunedCache = this._slidingWindowPrune({ version: 1, articles: merged, lastPruned: cache.lastPruned }, targetSize)
+      const fetchTime = Date.now() / 1000
+      const prunedCache = this._slidingWindowPrune({
+        version: 1,
+        articles: merged,
+        lastPruned: cache.lastPruned,
+        lastFetched: fetchTime,
+        etag: responseEtag || cache.etag,
+        lastModified: responseLastModified || cache.lastModified
+      }, targetSize)
 
       this._saveCache(prunedCache)
       this.articles = prunedCache.articles
@@ -540,39 +748,49 @@ class FeedService {
     const articles: Article[] = []
     const itemRegex = /<item>([\s\S]*?)<\/item>/g
     let match
+    let parseErrors = 0
 
     while ((match = itemRegex.exec(xml)) !== null) {
-      const itemXml = match[1]
-      const title = this._extractTag(itemXml, "title")
-      const link = this._extractTag(itemXml, "link")
-      const guid = this._extractTag(itemXml, "guid")
-      const pubDate = this._extractTag(itemXml, "pubDate")
-      const category = this._extractTag(itemXml, "category")
-      const creator = this._extractTag(itemXml, "dc:creator")
+      try {
+        const itemXml = match[1]
+        const title = this._extractTag(itemXml, "title")
+        const link = this._extractTag(itemXml, "link")
+        const guid = this._extractTag(itemXml, "guid")
+        const pubDate = this._extractTag(itemXml, "pubDate")
+        const category = this._extractTag(itemXml, "category")
+        const creator = this._extractTag(itemXml, "dc:creator")
 
-      if (!title || !link) continue
+        if (!title || !link) continue
 
-      let published = now
-      if (pubDate) {
-        try {
-          published = new Date(pubDate).getTime() / 1000
-        } catch {
-          published = now
+        let published = now
+        if (pubDate) {
+          try {
+            published = new Date(pubDate).getTime() / 1000
+          } catch {
+            published = now
+          }
         }
+
+        const ageSeconds = now - published
+        const weight = Math.exp((-0.693147 * ageSeconds) / this.HALF_LIFE)
+        const source = category || creator || "Feed"
+
+        articles.push({
+          id: guid || link,
+          title: this._decodeHtml(title),
+          source: this._decodeHtml(source),
+          url: this._validateUrl(link),
+          published,
+          weight,
+        })
+      } catch (e) {
+        parseErrors++
+        console.warn(`[Feed] Failed to parse article: ${e}`)
       }
+    }
 
-      const ageSeconds = now - published
-      const weight = Math.exp((-0.693147 * ageSeconds) / this.HALF_LIFE)
-      const source = category || creator || "Feed"
-
-      articles.push({
-        id: guid || link,
-        title: this._decodeHtml(title),
-        source: this._decodeHtml(source),
-        url: this._validateUrl(link),
-        published,
-        weight,
-      })
+    if (parseErrors > 0) {
+      console.warn(`[Feed] Skipped ${parseErrors} articles due to parse errors`)
     }
 
     return articles
@@ -660,6 +878,7 @@ class FeedService {
     }
 
     this._recentlyShown.set(selected.id, now)
+    this._pruneRecentlyShown()
     this.current = selected
 
     // Debug log
@@ -685,12 +904,47 @@ class FeedService {
   }
 
   private _startRefreshLoop(): void {
-    // Initial load - show loading state
-    this.refresh(true)
     const config = ConfigService.get_default().config.feed
     const intervalSeconds = config.refresh_interval ?? 90
+    const now = Date.now() / 1000
+
+    // Load cache first to check freshness
+    const cache = this._loadCache()
+
+    if (cache.articles.length > 0 && cache.lastFetched) {
+      const age = now - cache.lastFetched
+      const isFresh = age < intervalSeconds
+
+      if (isFresh) {
+        // Cache is fresh - use it immediately without network fetch
+        console.log(`[Feed] Using cached articles (${cache.articles.length} articles, ${age.toFixed(0)}s old)`)
+        this.articles = cache.articles
+        this.status = "ready"
+
+        if (this.articles.length > 0) {
+          this._selectNext()
+        }
+        this._notify()
+
+        // Schedule next refresh for when cache expires
+        const timeUntilStale = intervalSeconds - age
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, timeUntilStale * 1000, () => {
+          this.refresh(false)
+          return GLib.SOURCE_REMOVE
+        })
+      } else {
+        // Cache is stale - do initial refresh
+        console.log(`[Feed] Cache stale (${age.toFixed(0)}s old), refreshing...`)
+        this.refresh(true)
+      }
+    } else {
+      // No cache or empty - do initial refresh
+      console.log("[Feed] No cache found, doing initial load...")
+      this.refresh(true)
+    }
+
+    // Set up periodic refresh timer
     this._refreshTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, intervalSeconds * 1000, () => {
-      // Background refresh - don't show loading state
       this.refresh(false)
       return GLib.SOURCE_CONTINUE
     })

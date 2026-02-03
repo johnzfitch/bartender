@@ -10,6 +10,7 @@ export default function Feed() {
 
   const [displayText, setDisplayText] = createState(getDisplayText())
   const [statusClass, setStatusClass] = createState(getStatusClass())
+  const [showRetry, setShowRetry] = createState(getShowRetry())
 
   function getDisplayText(): string {
     if (feed.status === "loading") return "Loading feed..."
@@ -30,6 +31,10 @@ export default function Feed() {
     return "ready"
   }
 
+  function getShowRetry(): boolean {
+    return feed.status === "error" && !feed.error.includes("No feed URL")
+  }
+
   function handleClick(): void {
     // If no feed URL configured, open the config file
     if (feed.status === "error" && feed.error.includes("No feed URL")) {
@@ -40,9 +45,14 @@ export default function Feed() {
     feed.openCurrent()
   }
 
+  function handleRetry(): void {
+    feed.refresh(true)
+  }
+
   const unsubscribe = feed.subscribe(() => {
     setDisplayText(getDisplayText())
     setStatusClass(getStatusClass())
+    setShowRetry(getShowRetry())
   })
 
   onCleanup(() => {
@@ -55,17 +65,32 @@ export default function Feed() {
   hoverController.connect("leave", () => feed.resume())
 
   return (
-    <button
-      cssClasses={statusClass((c) => ["feed-ticker", c])}
-      onClicked={handleClick}
-      cursor={Gdk.Cursor.new_from_name("pointer", null)}
-      $={(self) => self.add_controller(hoverController)}
-    >
-      <label
-        label={displayText}
-        ellipsize={3}
-        maxWidthChars={150}
-      />
-    </button>
+    <box cssClasses={["feed-ticker-container"]} spacing={8}>
+      <button
+        cssClasses={statusClass((c) => ["feed-ticker", c])}
+        onClicked={handleClick}
+        cursor={Gdk.Cursor.new_from_name("pointer", null)}
+        $={(self) => self.add_controller(hoverController)}
+      >
+        <label
+          label={displayText}
+          ellipsize={3}
+          maxWidthChars={150}
+        />
+      </button>
+      {showRetry((show) =>
+        show ? (
+          <button
+            cssClasses={["feed-retry"]}
+            onClicked={handleRetry}
+            cursor={Gdk.Cursor.new_from_name("pointer", null)}
+          >
+            <icon icon="view-refresh-symbolic" />
+          </button>
+        ) : (
+          <box />
+        )
+      )}
+    </box>
   )
 }

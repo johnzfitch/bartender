@@ -1,11 +1,17 @@
 #!/bin/bash
-# Bartender wrapper script - CLI management for installed package
+# Bartender wrapper script - runs headless by default
 
-set -euo pipefail
+# Resolve symlink to get actual script location
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+while [[ -L "$SCRIPT_PATH" ]]; do
+    SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
+    SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+    [[ "$SCRIPT_PATH" != /* ]] && SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_PATH"
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
 
-# Ensure GTK4 compatibility
-export GTK_ICON_THEME="${GTK_ICON_THEME:-Adwaita}"
-export GI_TYPELIB_PATH="${GI_TYPELIB_PATH:-/usr/lib/girepository-1.0}"
+BARTENDER_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$BARTENDER_DIR" || exit 1
 
 show_help() {
     cat << EOF
@@ -34,29 +40,40 @@ EOF
 }
 
 check_running() {
-    # Check for bartender process (AGS instance)
-    pgrep -f "^/usr/bin/bartender$" >/dev/null 2>&1
-}
-
-get_pid() {
-    pgrep -f "^/usr/bin/bartender$" | head -n 1
+    # Check for gjs process running from bartender directory
+    local pid
+    pid=$(pgrep -f "gjs -m.*ags.js" | while read p; do
+        local cwd
+        cwd=$(readlink -f "/proc/$p/cwd" 2>/dev/null)
+        if [[ "$cwd" == "$BARTENDER_DIR" ]]; then
+            echo "$p"
+            break
+        fi
+    done)
+    [[ -n "$pid" ]]
 }
 
 stop_bartender() {
     echo "Stopping bartender..."
-    if ! check_running; then
-        echo "Bartender is not running"
-        return 0
-    fi
-
-    local pid
-    pid=$(get_pid)
-    kill "$pid" 2>/dev/null
+    # Find and kill bartender gjs processes
+    pgrep -f "gjs -m.*ags.js" | while read pid; do
+        local cwd
+        cwd=$(readlink -f "/proc/$pid/cwd" 2>/dev/null)
+        if [[ "$cwd" == "$BARTENDER_DIR" ]]; then
+            kill "$pid" 2>/dev/null
+        fi
+    done
 
     sleep 1
     if check_running; then
         # Force kill if still running
-        kill -9 "$pid" 2>/dev/null
+        pgrep -f "gjs -m.*ags.js" | while read pid; do
+            local cwd
+            cwd=$(readlink -f "/proc/$pid/cwd" 2>/dev/null)
+            if [[ "$cwd" == "$BARTENDER_DIR" ]]; then
+                kill -9 "$pid" 2>/dev/null
+            fi
+        done
         echo "Forcefully stopped bartender"
     else
         echo "Bartender stopped"
@@ -66,17 +83,21 @@ stop_bartender() {
 show_status() {
     if check_running; then
         echo "Bartender is running"
-        local pid
-        pid=$(get_pid)
-        echo "  PID: $pid"
+        # Find and show bartender gjs process
+        pgrep -f "gjs -m.*ags.js" | while read pid; do
+            local cwd
+            cwd=$(readlink -f "/proc/$pid/cwd" 2>/dev/null)
+            if [[ "$cwd" == "$BARTENDER_DIR" ]]; then
+                echo "  PID: $pid"
+                echo "  Working directory: $cwd"
+            fi
+        done
 
         # Show article count if cache exists
         local cache="$HOME/.local/state/bartender/article-cache.json"
         if [[ -f "$cache" ]]; then
-            if command -v jq >/dev/null 2>&1; then
-                local count=$(jq -r '.articles | length' "$cache" 2>/dev/null)
-                [[ -n "$count" ]] && echo "  Articles in cache: $count"
-            fi
+            local count=$(jq -r '.articles | length' "$cache" 2>/dev/null)
+            [[ -n "$count" ]] && echo "  Articles in cache: $count"
         fi
     else
         echo "Bartender is not running"
@@ -103,7 +124,7 @@ case "${1:-}" in
             stop_bartender
         fi
         echo "Starting bartender in background..."
-        nohup /usr/bin/bartender >/dev/null 2>&1 &
+        nohup ags run . >/dev/null 2>&1 &
         disown
         sleep 2
         if check_running; then
@@ -120,7 +141,7 @@ case "${1:-}" in
             echo "Warning: Bartender is already running. Stopping existing instance..."
             stop_bartender
         fi
-        exec /usr/bin/bartender
+        exec ags run .
         ;;
     --debug)
         echo "Starting bartender with debug logging (Ctrl+C to stop)..."
@@ -130,7 +151,7 @@ case "${1:-}" in
         fi
         # Enable debug logging in environment
         export BARTENDER_DEBUG=1
-        exec /usr/bin/bartender
+        exec ags run .
         ;;
     "")
         # No arguments - run in background (headless mode)
@@ -141,7 +162,7 @@ case "${1:-}" in
         fi
 
         echo "Starting bartender in background..."
-        nohup /usr/bin/bartender >/dev/null 2>&1 &
+        nohup ags run . >/dev/null 2>&1 &
         disown
         sleep 2
 

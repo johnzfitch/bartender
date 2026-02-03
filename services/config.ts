@@ -715,13 +715,14 @@ audiomixer = ${config.widgets.audiomixer}
       this._monitor.connect("changed", (_monitor, _file, _otherFile, eventType) => {
         if (
           eventType === Gio.FileMonitorEvent.CHANGED ||
-          eventType === Gio.FileMonitorEvent.CREATED
+          eventType === Gio.FileMonitorEvent.CREATED ||
+          eventType === Gio.FileMonitorEvent.CHANGES_DONE_HINT
         ) {
           // Cancel any pending reload to debounce rapid changes
           if (this._reloadTimer !== null) {
             GLib.source_remove(this._reloadTimer)
           }
-          this._reloadTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+          this._reloadTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
             console.log("Config file changed, reloading...")
             this._load()
             this._notify()

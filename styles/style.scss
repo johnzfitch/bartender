@@ -96,6 +96,10 @@ window.bartender {
   }
 
   // Feed ticker
+  .feed-ticker-container {
+    // Container for feed ticker and retry button
+  }
+
   .feed-ticker {
     padding: 8px 16px;
     font-size: 15px;
@@ -116,6 +120,20 @@ window.bartender {
 
     &:hover label {
       color: $accent;
+    }
+  }
+
+  .feed-retry {
+    padding: 8px 10px;
+    color: $foreground;
+
+    &:hover {
+      color: $accent;
+    }
+
+    icon {
+      min-width: 16px;
+      min-height: 16px;
     }
   }
 
@@ -208,6 +226,21 @@ window.bartender {
     &.headphones { color: $foreground; }
     &.both { color: $green; }
     &.muted { color: $red; }
+  }
+
+  // Widget error boundary
+  .widget-error {
+    padding: 8px 10px;
+    color: $red;
+
+    icon {
+      min-width: 16px;
+      min-height: 16px;
+    }
+
+    label {
+      font-size: 12px;
+    }
   }
 
   // WiFi widget
