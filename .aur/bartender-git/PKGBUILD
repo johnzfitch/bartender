@@ -1,7 +1,7 @@
 # Maintainer: Zack <zack@example.com>
 pkgname=bartender-git
 pkgver=r1
-pkgrel=3
+pkgrel=4
 pkgdesc="GTK4 status bar built with AGS for Hyprland - replaces waybar/mako"
 arch=('x86_64')
 url="https://github.com/johnzfitch/bartender"
