@@ -11,8 +11,10 @@ Conflicts=waybar.service mako.service
 [Service]
 Type=simple
 ExecStart=/usr/bin/bartender-wrapper
-Restart=on-failure
-RestartSec=3
+Restart=always
+RestartSec=5
+StartLimitBurst=5
+StartLimitIntervalSec=60
 
 # Environment defaults (can be overridden in ~/.config/bartender/.env)
 Environment="GTK_ICON_THEME=Adwaita"

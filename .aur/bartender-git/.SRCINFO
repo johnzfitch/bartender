@@ -1,7 +1,7 @@
 pkgbase = bartender-git
 	pkgdesc = GTK4 status bar built with AGS for Hyprland - replaces waybar/mako
 	pkgver = r1
-	pkgrel = 2
+	pkgrel = 3
 	url = https://github.com/johnzfitch/bartender
 	install = bartender.install
 	arch = x86_64
