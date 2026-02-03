@@ -52,7 +52,7 @@ systemctl --user enable --now bartender.service
 nano ~/.config/bartender/config.toml
 ```
 
-The bartender service will automatically stop waybar and mako when started. See [MIGRATION.md](MIGRATION.md) for detailed migration instructions.
+The bartender service will automatically stop waybar and mako when started. The service is configured with `Restart=always`, so it will automatically restart if killed or crashed (5 second delay, up to 5 attempts per 60 seconds). See [MIGRATION.md](MIGRATION.md) for detailed migration instructions.
 
 ### Development
 
