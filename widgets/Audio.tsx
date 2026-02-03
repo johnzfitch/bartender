@@ -70,7 +70,7 @@ export default function Audio() {
     const speakerCtl = audioCtl.speakerControl
     const headphoneCtl = audioCtl.headphoneControl
 
-    // Cycle: speakers -> headphones -> both -> speakers
+    // Cycle: speakers -> headphones -> both -> speakers (muted -> speakers)
     let newMode: AudioMode
     switch (current) {
       case "speakers":
@@ -79,7 +79,10 @@ export default function Audio() {
       case "headphones":
         newMode = "both"
         break
-      default:
+      case "both":
+        newMode = "speakers"
+        break
+      case "muted":
         newMode = "speakers"
         break
     }

@@ -113,7 +113,8 @@ class AudioControlService {
 
   async setControlState(controlName: string, audioCard: string, state: "on" | "off"): Promise<void> {
     try {
-      await execAsync(["amixer", "-c", audioCard, "sset", controlName, state])
+      const amixerState = state === "on" ? "unmute" : "mute"
+      await execAsync(["amixer", "-c", audioCard, "sset", controlName, amixerState])
     } catch (e) {
       console.warn(`[AudioControl] Failed to set ${controlName} to ${state}:`, e)
     }
