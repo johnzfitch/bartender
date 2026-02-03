@@ -78,19 +78,14 @@ export default function Feed() {
           maxWidthChars={150}
         />
       </button>
-      {showRetry((show) =>
-        show ? (
-          <button
-            cssClasses={["feed-retry"]}
-            onClicked={handleRetry}
-            cursor={Gdk.Cursor.new_from_name("pointer", null)}
-          >
-            <icon icon="view-refresh-symbolic" />
-          </button>
-        ) : (
-          <box />
-        )
-      )}
+      <button
+        cssClasses={["feed-retry"]}
+        onClicked={handleRetry}
+        cursor={Gdk.Cursor.new_from_name("pointer", null)}
+        visible={showRetry()}
+      >
+        <image iconName="view-refresh-symbolic" />
+      </button>
     </box>
   )
 }

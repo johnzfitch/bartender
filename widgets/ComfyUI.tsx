@@ -62,13 +62,13 @@ export default function ComfyUI() {
   return (
     <button
       cssClasses={cssClass((c) => ["comfyui", c])}
-      tooltipText={tooltip}
+      tooltipText={tooltip()}
       cursor={Gdk.Cursor.new_from_name("pointer", null)}
       $={(self) => self.add_controller(clickController)}
     >
       <box spacing={6}>
-        <image iconName={icon} />
-        <label label={metrics} />
+        <image iconName={icon()} />
+        <label label={metrics()} />
       </box>
     </button>
   )

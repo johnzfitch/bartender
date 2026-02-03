@@ -217,7 +217,7 @@ function Widget({ name }: { name: string }) {
     console.error(`[Bar] Widget ${name} crashed:`, error)
     return (
       <box className="widget-error" spacing={4}>
-        <icon icon="dialog-error-symbolic" />
+        <image iconName="dialog-error-symbolic" />
         <label label={`${name} error`} />
       </box>
     )
