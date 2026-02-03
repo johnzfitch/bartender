@@ -73,7 +73,7 @@ export default function Feed() {
         $={(self) => self.add_controller(hoverController)}
       >
         <label
-          label={displayText}
+          label={displayText()}
           ellipsize={3}
           maxWidthChars={150}
         />
